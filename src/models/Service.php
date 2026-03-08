@@ -1,0 +1,41 @@
+<?php
+
+namespace justinholtweb\stub\models;
+
+use craft\base\Model;
+
+class Service extends Model
+{
+    public ?int $id = null;
+    public string $name = '';
+    public string $handle = '';
+    public ?string $description = null;
+    public int $duration = 60;
+    public float $price = 0;
+    public string $currency = 'USD';
+    public int $bufferTimeBefore = 0;
+    public int $bufferTimeAfter = 0;
+    public int $capacity = 1;
+    public string $color = '#2563eb';
+    public bool $enabled = true;
+    public int $sortOrder = 0;
+    public ?string $dateCreated = null;
+    public ?string $dateUpdated = null;
+    public ?string $dateDeleted = null;
+    public ?string $uid = null;
+
+    public function defineRules(): array
+    {
+        return [
+            [['name', 'handle', 'duration', 'currency'], 'required'],
+            [['name'], 'string', 'max' => 255],
+            [['handle'], 'string', 'max' => 255],
+            [['handle'], 'match', 'pattern' => '/^[a-zA-Z][a-zA-Z0-9_]*$/'],
+            [['duration', 'bufferTimeBefore', 'bufferTimeAfter', 'capacity', 'sortOrder'], 'integer', 'min' => 0],
+            [['duration', 'capacity'], 'integer', 'min' => 1],
+            [['price'], 'number', 'min' => 0],
+            [['currency'], 'string', 'length' => 3],
+            [['color'], 'match', 'pattern' => '/^#[0-9a-fA-F]{6}$/'],
+        ];
+    }
+}

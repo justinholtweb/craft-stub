@@ -1,0 +1,26 @@
+{
+    "name": "justinholtweb/craft-stub",
+    "description": "Booking & appointments plugin for Craft CMS",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.2",
+        "craftcms/cms": "^5.5",
+        "stripe/stripe-php": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\stub\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "stub",
+        "name": "Stub",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholtweb.com",
+        "documentationUrl": "https://github.com/justinholtweb/craft-stub/blob/main/README.md",
+        "class": "justinholtweb\\stub\\Plugin"
+    }
+}

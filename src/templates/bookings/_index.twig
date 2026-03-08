@@ -1,0 +1,16 @@
+{% extends 'stub/_layouts/cp' %}
+
+{% set title = 'Bookings'|t('stub') %}
+{% set selectedSubnavItem = 'bookings' %}
+
+{% block main %}
+    {% set elementType = elementType ?? 'justinholtweb\\stub\\elements\\Booking' %}
+
+    {{ craft.app.view.renderTemplate('_elements/indexcontainer', {
+        elementType: elementType,
+        context: 'index',
+        sources: null,
+        showStatusMenu: true,
+        showSiteMenu: false,
+    }) }}
+{% endblock %}
