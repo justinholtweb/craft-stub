@@ -264,19 +264,28 @@
 
         // Step 5: Submit & Payment
         async submitBooking() {
+            const body = {
+                serviceId: this.data.serviceId,
+                providerId: this.data.providerId,
+                startDateTime: this.data.startDateTimeUtc,
+                timezone: this.timezone,
+                email: this.data.email,
+                firstName: this.data.firstName,
+                lastName: this.data.lastName,
+                phone: this.data.phone,
+                customerNotes: this.data.customerNotes,
+            };
+
+            // Forward any honeypot field present in the form (server controls the field name).
+            this.el.querySelectorAll('[aria-hidden="true"] input').forEach(input => {
+                if (input.name && !(input.name in body)) {
+                    body[input.name] = input.value;
+                }
+            });
+
             const resp = await this.fetchJson('/actions/stub/booking-form/submit', {
                 method: 'POST',
-                body: {
-                    serviceId: this.data.serviceId,
-                    providerId: this.data.providerId,
-                    startDateTime: this.data.startDateTimeUtc,
-                    timezone: this.timezone,
-                    email: this.data.email,
-                    firstName: this.data.firstName,
-                    lastName: this.data.lastName,
-                    phone: this.data.phone,
-                    customerNotes: this.data.customerNotes,
-                },
+                body,
             });
 
             if (!resp.success) {
@@ -286,6 +295,7 @@
 
             this.data.bookingId = resp.bookingId;
             this.data.referenceNumber = resp.referenceNumber;
+            this.data.paymentToken = resp.paymentToken;
             this.data.requiresPayment = resp.requiresPayment;
 
             if (resp.requiresPayment) {
@@ -309,7 +319,10 @@
 
             const resp = await this.fetchJson('/actions/stub/payment/create-intent', {
                 method: 'POST',
-                body: { bookingId: this.data.bookingId },
+                body: {
+                    bookingId: this.data.bookingId,
+                    paymentToken: this.data.paymentToken,
+                },
             });
 
             if (!resp.clientSecret) {

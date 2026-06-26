@@ -205,3 +205,45 @@
     name: 'embedStripeJs',
     on: settings.embedStripeJs,
 }) }}
+
+<hr>
+<h2>{{ 'Anti-Abuse'|t('stub') }}</h2>
+
+{{ forms.lightswitchField({
+    label: 'Enable Honeypot'|t('stub'),
+    instructions: 'Add a hidden field to the booking form. Submissions that fill it are silently dropped.'|t('stub'),
+    id: 'enableHoneypot',
+    name: 'enableHoneypot',
+    on: settings.enableHoneypot,
+}) }}
+
+{{ forms.textField({
+    label: 'Honeypot Field Name'|t('stub'),
+    instructions: 'The name attribute used for the honeypot input.'|t('stub'),
+    id: 'honeypotFieldName',
+    name: 'honeypotFieldName',
+    value: settings.honeypotFieldName,
+    errors: settings.getErrors('honeypotFieldName'),
+}) }}
+
+{{ forms.textField({
+    label: 'Bookings per IP per Hour'|t('stub'),
+    instructions: 'Maximum booking submissions allowed from a single IP per hour. Set to 0 to disable.'|t('stub'),
+    id: 'bookingsPerHour',
+    name: 'bookingsPerHour',
+    value: settings.bookingsPerHour,
+    type: 'number',
+    min: 0,
+    errors: settings.getErrors('bookingsPerHour'),
+}) }}
+
+{{ forms.textField({
+    label: 'Payment Intents per IP per Hour'|t('stub'),
+    instructions: 'Maximum create-intent calls allowed from a single IP per hour. Set to 0 to disable.'|t('stub'),
+    id: 'paymentIntentsPerHour',
+    name: 'paymentIntentsPerHour',
+    value: settings.paymentIntentsPerHour,
+    type: 'number',
+    min: 0,
+    errors: settings.getErrors('paymentIntentsPerHour'),
+}) }}

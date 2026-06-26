@@ -6,8 +6,11 @@ use Craft;
 use craft\web\Controller;
 use DateTime;
 use DateTimeZone;
+use justinholtweb\stub\helpers\BookingHelper;
+use justinholtweb\stub\helpers\RateLimitHelper;
 use justinholtweb\stub\Plugin;
 use yii\web\Response;
+use yii\web\TooManyRequestsHttpException;
 
 class BookingFormController extends Controller
 {
@@ -19,6 +22,18 @@ class BookingFormController extends Controller
         $this->requireAcceptsJson();
 
         $request = Craft::$app->getRequest();
+        $settings = Plugin::getInstance()->getSettings();
+
+        // Honeypot — silently succeed for bots so they don't retry.
+        if ($settings->enableHoneypot && !empty($request->getBodyParam($settings->honeypotFieldName))) {
+            return $this->asJson(['success' => true]);
+        }
+
+        // Per-IP rate limit. Skip when set to 0.
+        if ($settings->bookingsPerHour > 0
+            && !RateLimitHelper::check('booking', $settings->bookingsPerHour, 3600)) {
+            throw new TooManyRequestsHttpException('Too many booking attempts. Please try again later.');
+        }
 
         $serviceId = (int)$request->getRequiredBodyParam('serviceId');
         $providerId = (int)$request->getRequiredBodyParam('providerId');
@@ -62,12 +77,13 @@ class BookingFormController extends Controller
         // Send admin notification
         Plugin::getInstance()->emails->sendAdminNotification($booking);
 
-        $requiresPayment = $service->price > 0 && Plugin::getInstance()->getSettings()->paymentEnabled;
+        $requiresPayment = $service->price > 0 && $settings->paymentEnabled;
 
         return $this->asJson([
             'success' => true,
             'bookingId' => $booking->id,
             'referenceNumber' => $booking->referenceNumber,
+            'paymentToken' => BookingHelper::generatePaymentToken($booking),
             'requiresPayment' => $requiresPayment,
             'price' => $service->price,
             'currency' => $service->currency,

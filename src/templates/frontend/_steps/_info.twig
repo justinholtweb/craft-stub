@@ -40,6 +40,13 @@
     </div>
 {% endif %}
 
+{% if settings.enableHoneypot %}
+    <div style="position:absolute;left:-9999px;height:0;width:0;overflow:hidden;" aria-hidden="true">
+        <label for="{{ settings.honeypotFieldName }}">Leave this field empty</label>
+        <input type="text" name="{{ settings.honeypotFieldName }}" id="{{ settings.honeypotFieldName }}" tabindex="-1" autocomplete="off">
+    </div>
+{% endif %}
+
 <div class="stub-actions">
     <button type="button" class="stub-btn stub-btn-secondary" data-stub-action="prev">{{ '← Back'|t('stub') }}</button>
     <button type="button" class="stub-btn stub-btn-primary" data-stub-action="submit-info">{{ 'Book Now →'|t('stub') }}</button>

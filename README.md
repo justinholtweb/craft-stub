@@ -141,6 +141,19 @@ All settings are in **Settings → Stub** or via `config/stub.php`:
 - `primaryColor` — Hex color for booking form UI (default: #2563eb)
 - `embedStripeJs` — Auto-load Stripe.js on booking form pages (default: true)
 
+### Anti-Abuse
+- `enableHoneypot` — Add a hidden field to the booking form; submissions that fill it are silently dropped (default: true)
+- `honeypotFieldName` — `name` attribute used for the honeypot input (default: stub_hp)
+- `bookingsPerHour` — Max booking submissions allowed from a single IP per hour; set to 0 to disable (default: 10)
+- `paymentIntentsPerHour` — Max create-intent calls allowed from a single IP per hour; set to 0 to disable (default: 30)
+
+The anonymous booking and payment endpoints are protected by three measures: a configurable
+**honeypot** field that traps naive bots, per-IP **rate limiting** on both submission and
+payment-intent creation, and a signed **payment token**. The payment token is an HMAC of the
+booking's identity (keyed by the site security key) returned from the submit response and
+required by `payment/create-intent`, so booking IDs can't be enumerated to trigger Stripe
+PaymentIntents.
+
 ## Twig API
 
 ```twig

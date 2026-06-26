@@ -38,6 +38,12 @@ class Settings extends Model
     public string $primaryColor = '#2563eb';
     public bool $embedStripeJs = true;
 
+    // Anti-abuse
+    public bool $enableHoneypot = true;
+    public string $honeypotFieldName = 'stub_hp';
+    public int $bookingsPerHour = 10;
+    public int $paymentIntentsPerHour = 30;
+
     public function defineRules(): array
     {
         return [
@@ -47,6 +53,9 @@ class Settings extends Model
             [['minimumNotice', 'maxAdvanceBooking', 'slotInterval'], 'integer', 'min' => 1],
             [['adminEmail'], 'email', 'skipOnEmpty' => true],
             [['primaryColor'], 'match', 'pattern' => '/^#[0-9a-fA-F]{6}$/'],
+            [['bookingsPerHour', 'paymentIntentsPerHour'], 'integer', 'min' => 0],
+            [['honeypotFieldName'], 'string', 'max' => 50],
+            [['enableHoneypot'], 'boolean'],
         ];
     }
 }
