@@ -22,6 +22,16 @@ class BookingQuery extends ElementQuery
     public mixed $startDateTime = null;
     public mixed $endDateTime = null;
 
+    public function __construct($elementType, array $config = [])
+    {
+        // Bookings use custom statuses (pending, confirmed, completed, ...), so Craft's
+        // default 'enabled' status would resolve to `bookingStatus = 'enabled'` and never
+        // match a real booking. Default to no status filter instead.
+        $config['status'] ??= null;
+
+        parent::__construct($elementType, $config);
+    }
+
     public function serviceId(?int $value): self
     {
         $this->serviceId = $value;

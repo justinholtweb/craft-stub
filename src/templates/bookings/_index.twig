@@ -1,16 +1,15 @@
-{% extends 'stub/_layouts/cp' %}
+{# Craft's `_elements/indexcontainer` is deprecated and ships no JS init, so extend
+   `_layouts/elementindex`, which wires up Craft.createElementIndex, the sources
+   sidebar, and the toolbar for us. #}
+{% extends '_layouts/elementindex' %}
+
+{% set elementType = 'justinholtweb\\stub\\elements\\Booking' %}
 
 {% set title = 'Bookings'|t('stub') %}
 {% set selectedSubnavItem = 'bookings' %}
-
-{% block main %}
-    {% set elementType = elementType ?? 'justinholtweb\\stub\\elements\\Booking' %}
-
-    {{ craft.app.view.renderTemplate('_elements/indexcontainer', {
-        elementType: elementType,
-        context: 'index',
-        sources: null,
-        showStatusMenu: true,
-        showSiteMenu: false,
-    }) }}
-{% endblock %}
+{% set context = 'index' %}
+{% set canHaveDrafts = false %}
+{% set showSiteMenu = false %}
+{% set elementDisplayName = 'Booking'|t('stub') %}
+{% set elementPluralDisplayName = 'Bookings'|t('stub') %}
+{% set sources = craft.app.elementSources.getSources(elementType, context) %}

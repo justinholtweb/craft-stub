@@ -4,6 +4,8 @@ namespace justinholtweb\stub\controllers;
 
 use Craft;
 use craft\web\Controller;
+use DateTime;
+use DateTimeZone;
 use justinholtweb\stub\Plugin;
 use yii\web\Response;
 
@@ -43,18 +45,26 @@ class CalendarController extends Controller
             $providerId ? (int)$providerId : null,
         );
 
+        $utc = new DateTimeZone('UTC');
+
         $events = [];
         foreach ($bookings as $booking) {
             $service = $booking->getService();
             $provider = $booking->getProvider();
             $customer = $booking->getCustomer();
 
+            // Datetimes are stored in UTC. FullCalendar treats a naive string as local
+            // time, so emit ISO-8601 with the booking's own offset instead.
+            $bookingTz = new DateTimeZone($booking->timezone ?: 'UTC');
+            $startsAt = (new DateTime($booking->startDateTime, $utc))->setTimezone($bookingTz);
+            $endsAt = (new DateTime($booking->endDateTime, $utc))->setTimezone($bookingTz);
+
             $events[] = [
                 'id' => $booking->id,
                 'title' => ($service ? $service->name : 'Booking') .
                     ($customer ? ' — ' . $customer->getFullName() : ''),
-                'start' => $booking->startDateTime,
-                'end' => $booking->endDateTime,
+                'start' => $startsAt->format('c'),
+                'end' => $endsAt->format('c'),
                 'color' => $service ? $service->color : '#2563eb',
                 'url' => $booking->getCpEditUrl(),
                 'extendedProps' => [
