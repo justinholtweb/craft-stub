@@ -5,7 +5,6 @@ namespace justinholtweb\stub\elements;
 use Craft;
 use craft\base\Element;
 use craft\elements\actions\Delete;
-use craft\elements\db\ElementQueryInterface;
 use craft\helpers\UrlHelper;
 use justinholtweb\stub\elements\db\BookingQuery;
 use justinholtweb\stub\enums\BookingStatus;
@@ -184,7 +183,7 @@ class Booking extends Element
         return ['referenceNumber'];
     }
 
-    protected function tableAttributeHtml(string $attribute): string
+    protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
             case 'bookingStatus':
@@ -219,7 +218,7 @@ class Booking extends Element
                 return \justinholtweb\stub\helpers\BookingHelper::formatPrice($this->price, $this->currency);
         }
 
-        return parent::tableAttributeHtml($attribute);
+        return parent::attributeHtml($attribute);
     }
 
     protected static function defineActions(string $source = null): array

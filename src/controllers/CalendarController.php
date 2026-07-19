@@ -4,8 +4,6 @@ namespace justinholtweb\stub\controllers;
 
 use Craft;
 use craft\web\Controller;
-use DateTime;
-use DateTimeZone;
 use justinholtweb\stub\Plugin;
 use yii\web\Response;
 

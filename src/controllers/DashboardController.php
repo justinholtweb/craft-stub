@@ -2,7 +2,6 @@
 
 namespace justinholtweb\stub\controllers;
 
-use Craft;
 use craft\web\Controller;
 use justinholtweb\stub\Plugin;
 use yii\web\Response;

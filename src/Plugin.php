@@ -3,8 +3,8 @@
 namespace justinholtweb\stub;
 
 use Craft;
-use craft\base\Plugin as BasePlugin;
 use craft\base\Model;
+use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
@@ -35,6 +35,7 @@ use yii\base\Event;
  * @property Payments $payments
  * @property Emails $emails
  * @property Settings $settings
+ * @method Settings getSettings()
  */
 class Plugin extends BasePlugin
 {
@@ -104,7 +105,7 @@ class Plugin extends BasePlugin
         Event::on(
             Elements::class,
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
-            function (RegisterComponentTypesEvent $event) {
+            function(RegisterComponentTypesEvent $event) {
                 $event->types[] = Booking::class;
             }
         );
@@ -115,7 +116,7 @@ class Plugin extends BasePlugin
         Event::on(
             CraftVariable::class,
             CraftVariable::EVENT_INIT,
-            function (Event $event) {
+            function(Event $event) {
                 $event->sender->set('stub', StubVariable::class);
             }
         );
@@ -126,7 +127,7 @@ class Plugin extends BasePlugin
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
-            function (RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event) {
                 $event->rules['stub'] = 'stub/dashboard/index';
                 $event->rules['stub/dashboard'] = 'stub/dashboard/index';
                 $event->rules['stub/calendar'] = 'stub/calendar/index';
@@ -150,7 +151,7 @@ class Plugin extends BasePlugin
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function (RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event) {
                 // Site routes handled via action URLs
             }
         );
@@ -161,7 +162,7 @@ class Plugin extends BasePlugin
         Event::on(
             UserPermissions::class,
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function (RegisterUserPermissionsEvent $event) {
+            function(RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
                     'heading' => Craft::t('stub', 'Stub'),
                     'permissions' => [
@@ -194,7 +195,7 @@ class Plugin extends BasePlugin
         Event::on(
             \craft\services\SystemMessages::class,
             \craft\services\SystemMessages::EVENT_REGISTER_MESSAGES,
-            function (\craft\events\RegisterEmailMessagesEvent $event) {
+            function(\craft\events\RegisterEmailMessagesEvent $event) {
                 $event->messages[] = [
                     'key' => 'stub_booking_confirmation',
                     'heading' => Craft::t('stub', 'Booking Confirmation'),

@@ -2,7 +2,6 @@
 
 namespace justinholtweb\stub\services;
 
-use Craft;
 use craft\db\Query;
 use DateTime;
 use DateTimeZone;

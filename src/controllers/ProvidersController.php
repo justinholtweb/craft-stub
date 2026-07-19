@@ -87,7 +87,7 @@ class ProvidersController extends Controller
         }
 
         if (!Plugin::getInstance()->providers->saveProvider($provider)) {
-            Craft::$app->getSession()->setError(Craft::t('stub', 'Couldn't save provider.'));
+            Craft::$app->getSession()->setError(Craft::t('stub', 'Couldn\'t save provider.'));
             Craft::$app->getUrlManager()->setRouteParams(['provider' => $provider]);
             return null;
         }

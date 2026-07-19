@@ -167,7 +167,7 @@ class Bookings extends Component
                 ->where(['paymentStatus' => 'paid'])
                 ->andWhere(['>=', 'paidAt', "{$monthStart} 00:00:00"])
                 ->andWhere(['<=', 'paidAt', "{$monthEnd} 23:59:59"])
-                ->sum('price') ?? 0,
+                ->sum('price'),
         ];
     }
 }

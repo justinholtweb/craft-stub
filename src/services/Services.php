@@ -4,8 +4,6 @@ namespace justinholtweb\stub\services;
 
 use Craft;
 use craft\db\Query;
-use craft\helpers\Db;
-use craft\helpers\StringHelper;
 use justinholtweb\stub\models\Service;
 use justinholtweb\stub\records\ServiceRecord;
 use yii\base\Component;

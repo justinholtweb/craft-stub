@@ -87,7 +87,7 @@ class ServicesController extends Controller
         }
 
         if (!Plugin::getInstance()->services->saveService($service)) {
-            Craft::$app->getSession()->setError(Craft::t('stub', 'Couldn't save service.'));
+            Craft::$app->getSession()->setError(Craft::t('stub', 'Couldn\'t save service.'));
             Craft::$app->getUrlManager()->setRouteParams(['service' => $service]);
             return null;
         }

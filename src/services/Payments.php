@@ -76,11 +76,11 @@ class Payments extends Component
 
         switch ($event->type) {
             case 'payment_intent.succeeded':
-                $this->_handlePaymentSuccess($event->data->object);
+                $this->_handlePaymentSuccess((object)$event->data->offsetGet('object'));
                 break;
 
             case 'payment_intent.payment_failed':
-                $this->_handlePaymentFailure($event->data->object);
+                $this->_handlePaymentFailure((object)$event->data->offsetGet('object'));
                 break;
         }
 

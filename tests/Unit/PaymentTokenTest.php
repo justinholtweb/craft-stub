@@ -12,7 +12,7 @@ use justinholtweb\stub\helpers\BookingHelper;
 
 const SECRET = 'security-key:stub:payment';
 
-it('produces a deterministic sha256 hex token', function () {
+it('produces a deterministic sha256 hex token', function() {
     $a = BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET);
     $b = BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET);
 
@@ -20,44 +20,44 @@ it('produces a deterministic sha256 hex token', function () {
         ->and($a)->toMatch('/^[0-9a-f]{64}$/');
 });
 
-it('binds the token to the booking id', function () {
+it('binds the token to the booking id', function() {
     expect(BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET))
         ->not->toBe(BookingHelper::signPayment(43, 'STB-20260626-AB12', SECRET));
 });
 
-it('binds the token to the reference number', function () {
+it('binds the token to the reference number', function() {
     expect(BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET))
         ->not->toBe(BookingHelper::signPayment(42, 'STB-20260626-ZZ99', SECRET));
 });
 
-it('binds the token to the secret', function () {
+it('binds the token to the secret', function() {
     expect(BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET))
         ->not->toBe(BookingHelper::signPayment(42, 'STB-20260626-AB12', 'different-secret'));
 });
 
-it('accepts a token it signed', function () {
+it('accepts a token it signed', function() {
     $token = BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET);
 
     expect(BookingHelper::checkPayment($token, 42, 'STB-20260626-AB12', SECRET))->toBeTrue();
 });
 
-it('rejects a tampered token', function () {
+it('rejects a tampered token', function() {
     $token = BookingHelper::signPayment(42, 'STB-20260626-AB12', SECRET);
 
     expect(BookingHelper::checkPayment($token, 99, 'STB-20260626-AB12', SECRET))->toBeFalse();
 });
 
-it('rejects a token signed with another secret', function () {
+it('rejects a token signed with another secret', function() {
     $token = BookingHelper::signPayment(42, 'STB-20260626-AB12', 'leaked-guess');
 
     expect(BookingHelper::checkPayment($token, 42, 'STB-20260626-AB12', SECRET))->toBeFalse();
 });
 
-it('rejects an empty token', function () {
+it('rejects an empty token', function() {
     expect(BookingHelper::checkPayment('', 42, 'STB-20260626-AB12', SECRET))->toBeFalse();
 });
 
-it('rejects verification when the reference number is empty', function () {
+it('rejects verification when the reference number is empty', function() {
     $token = BookingHelper::signPayment(42, '', SECRET);
 
     expect(BookingHelper::checkPayment($token, 42, '', SECRET))->toBeFalse();

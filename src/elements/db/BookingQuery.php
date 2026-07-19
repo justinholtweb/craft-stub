@@ -4,7 +4,13 @@ namespace justinholtweb\stub\elements\db;
 
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
+use justinholtweb\stub\elements\Booking;
 
+/**
+ * @method Booking[] all($db = null)
+ * @method Booking|null one($db = null)
+ * @method Booking|null nth(int $n, ?\yii\db\Connection $db = null)
+ */
 class BookingQuery extends ElementQuery
 {
     public ?int $serviceId = null;
