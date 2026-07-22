@@ -31,6 +31,16 @@ class Provider extends Model
     /** @var int[] */
     public array $serviceIds = [];
 
+    /**
+     * @inheritdoc
+     * These audit columns are stored and consumed as strings, so opt out of
+     * Craft's automatic DateTime casting (which would violate the ?string types).
+     */
+    public function datetimeAttributes(): array
+    {
+        return [];
+    }
+
     public function defineRules(): array
     {
         return [

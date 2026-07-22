@@ -3,7 +3,7 @@
 {% set title = 'Customers'|t('stub') %}
 {% set selectedSubnavItem = 'customers' %}
 
-{% block main %}
+{% block content %}
     <div class="toolbar" style="margin-bottom: 16px;">
         <form method="get" style="display: flex; gap: 8px;">
             <input type="text" name="q" value="{{ search }}" placeholder="{{ 'Search customers...'|t('stub') }}" class="text">

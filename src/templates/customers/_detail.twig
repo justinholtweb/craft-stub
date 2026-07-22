@@ -3,7 +3,7 @@
 {% set title = customer.firstName ~ ' ' ~ customer.lastName %}
 {% set selectedSubnavItem = 'customers' %}
 
-{% block main %}
+{% block content %}
     <div class="toolbar">
         <a href="{{ cpUrl('stub/customers') }}" class="btn">{{ '← Back to Customers'|t('stub') }}</a>
     </div>

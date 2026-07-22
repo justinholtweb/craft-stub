@@ -18,6 +18,16 @@ class Payment extends Model
     public ?string $dateUpdated = null;
     public ?string $uid = null;
 
+    /**
+     * @inheritdoc
+     * These audit columns are stored and consumed as strings, so opt out of
+     * Craft's automatic DateTime casting (which would violate the ?string types).
+     */
+    public function datetimeAttributes(): array
+    {
+        return [];
+    }
+
     public function defineRules(): array
     {
         return [

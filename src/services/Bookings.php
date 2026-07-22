@@ -126,9 +126,16 @@ class Bookings extends Component
 
     public function getBookingsForDateRange(string $startDate, string $endDate, ?int $providerId = null): array
     {
+        // Callers (e.g. FullCalendar) may pass ISO-8601 with an offset such as
+        // "2026-07-19T00:00:00-04:00". Datetimes are stored in UTC, so convert both
+        // bounds to UTC before comparing.
+        $utc = new DateTimeZone('UTC');
+        $start = (new DateTime($startDate))->setTimezone($utc)->format('Y-m-d H:i:s');
+        $end = (new DateTime($endDate))->setTimezone($utc)->format('Y-m-d H:i:s');
+
         $query = Booking::find()
-            ->startDateTime(">= {$startDate}")
-            ->endDateTime("<= {$endDate}")
+            ->startDateTime(">= {$start}")
+            ->endDateTime("<= {$end}")
             ->orderBy(['startDateTime' => SORT_ASC]);
 
         if ($providerId) {

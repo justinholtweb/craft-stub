@@ -3,7 +3,7 @@
 {% set title = isNew ? 'New Service'|t('stub') : service.name %}
 {% set selectedSubnavItem = 'services' %}
 
-{% block main %}
+{% block content %}
     <form method="post" accept-charset="UTF-8">
         {{ csrfInput() }}
         {{ actionInput('stub/services/save') }}
