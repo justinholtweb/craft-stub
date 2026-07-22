@@ -6,9 +6,11 @@ use Craft;
 use craft\base\Element;
 use craft\elements\actions\Delete;
 use craft\helpers\UrlHelper;
+use DateTime;
 use justinholtweb\stub\elements\db\BookingQuery;
 use justinholtweb\stub\enums\BookingStatus;
 use justinholtweb\stub\enums\PaymentStatus;
+use justinholtweb\stub\helpers\TimeHelper;
 use justinholtweb\stub\Plugin;
 use justinholtweb\stub\records\BookingRecord;
 
@@ -207,18 +209,33 @@ class Booking extends Element
                 return $customer ? "{$customer->firstName} {$customer->lastName}" : '';
 
             case 'startDateTime':
-                if (!$this->startDateTime) {
-                    return '';
-                }
-                $dt = new \DateTime($this->startDateTime, new \DateTimeZone('UTC'));
-                $dt->setTimezone(new \DateTimeZone($this->timezone));
-                return $dt->format('M j, Y g:i A');
+                $dt = $this->getLocalStartDateTime();
+                return $dt ? $dt->format('M j, Y g:i A') : '';
 
             case 'price':
                 return \justinholtweb\stub\helpers\BookingHelper::formatPrice($this->price, $this->currency);
         }
 
         return parent::attributeHtml($attribute);
+    }
+
+    /**
+     * `startDateTime` is a naive UTC string. Anything that displays it needs a real
+     * DateTime in the booking's own timezone — parsing the raw string elsewhere (Twig's
+     * `date` filter, say) reads it as server-local and reports the wrong time.
+     */
+    public function getLocalStartDateTime(): ?DateTime
+    {
+        return $this->startDateTime !== null
+            ? TimeHelper::convertFromUtc($this->startDateTime, $this->timezone)
+            : null;
+    }
+
+    public function getLocalEndDateTime(): ?DateTime
+    {
+        return $this->endDateTime !== null
+            ? TimeHelper::convertFromUtc($this->endDateTime, $this->timezone)
+            : null;
     }
 
     protected static function defineActions(string $source = null): array

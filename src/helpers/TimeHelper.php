@@ -4,6 +4,7 @@ namespace justinholtweb\stub\helpers;
 
 use DateTime;
 use DateTimeZone;
+use InvalidArgumentException;
 
 class TimeHelper
 {
@@ -39,6 +40,44 @@ class TimeHelper
         $dt = clone $dt;
         $dt->setTimezone(new DateTimeZone($timezone));
         return $dt->format($format);
+    }
+
+    /**
+     * Returns the inclusive [start, end] bounds of the calendar period containing
+     * `$now`, in `$timezone`.
+     *
+     * Dashboard periods have to be anchored to a real timezone rather than UTC: "today"
+     * means today for whoever is reading the page, and near midnight the two disagree.
+     * Callers format the result themselves — local strings for date query params (which
+     * `Db::parseDateParam()` reads as system-local), or UTC for columns queried directly.
+     *
+     * @param string $period One of `day`, `week` (Monday–Sunday), or `month`.
+     * @return DateTime[] The start and end bounds, in `$timezone`.
+     */
+    public static function periodBounds(string $period, string $timezone, ?DateTime $now = null): array
+    {
+        $tz = new DateTimeZone($timezone);
+        $start = $now !== null ? (clone $now)->setTimezone($tz) : new DateTime('now', $tz);
+        $end = clone $start;
+
+        switch ($period) {
+            case 'day':
+                break;
+            case 'week':
+                // PHP's "this week" is ISO-8601, so on a Sunday these resolve backwards
+                // to the Monday six days earlier rather than forwards.
+                $start->modify('monday this week');
+                $end->modify('sunday this week');
+                break;
+            case 'month':
+                $start->modify('first day of this month');
+                $end->modify('last day of this month');
+                break;
+            default:
+                throw new InvalidArgumentException("Unsupported period: {$period}");
+        }
+
+        return [$start->setTime(0, 0, 0), $end->setTime(23, 59, 59)];
     }
 
     public static function nowUtc(): DateTime

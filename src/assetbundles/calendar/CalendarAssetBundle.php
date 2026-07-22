@@ -12,10 +12,8 @@ class CalendarAssetBundle extends AssetBundle
         $this->sourcePath = __DIR__;
         $this->depends = [CpAsset::class];
 
-        $this->css = [
-            'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css',
-        ];
-
+        // FullCalendar v6 injects its own styles from the JS bundle; there is no
+        // companion stylesheet to load (the v5-era `index.global.min.css` 404s).
         $this->js = [
             'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js',
             'calendar-init.js',

@@ -28,9 +28,9 @@
                         <tr>
                             <th>{{ 'Date & Time'|t('stub') }}</th>
                             <td>
-                                {% if booking.startDateTime %}
-                                    {% set dt = booking.startDateTime|date('M j, Y g:i A', timezone=booking.timezone) %}
-                                    {{ dt }} ({{ booking.timezone }})
+                                {% if booking.localStartDateTime %}
+                                    {{ booking.localStartDateTime|date('M j, Y g:i A', timezone=booking.timezone) }}
+                                    ({{ booking.timezone }})
                                 {% endif %}
                             </td>
                         </tr>

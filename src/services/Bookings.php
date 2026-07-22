@@ -11,6 +11,7 @@ use justinholtweb\stub\enums\BookingStatus;
 use justinholtweb\stub\enums\PaymentStatus;
 use justinholtweb\stub\events\BookingEvent;
 use justinholtweb\stub\helpers\BookingHelper;
+use justinholtweb\stub\helpers\TimeHelper;
 use justinholtweb\stub\Plugin;
 use yii\base\Component;
 
@@ -114,11 +115,10 @@ class Bookings extends Component
 
     public function getTodaysBookings(): array
     {
-        $today = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d');
+        [$start, $end] = TimeHelper::periodBounds('day', Craft::$app->getTimeZone());
 
         return Booking::find()
-            ->startDateTime(">= {$today} 00:00:00")
-            ->endDateTime("<= {$today} 23:59:59")
+            ->startDateTime($this->dateRangeParam($start, $end))
             ->bookingStatus('confirmed')
             ->orderBy(['startDateTime' => SORT_ASC])
             ->all();
@@ -127,15 +127,18 @@ class Bookings extends Component
     public function getBookingsForDateRange(string $startDate, string $endDate, ?int $providerId = null): array
     {
         // Callers (e.g. FullCalendar) may pass ISO-8601 with an offset such as
-        // "2026-07-19T00:00:00-04:00". Datetimes are stored in UTC, so convert both
-        // bounds to UTC before comparing.
-        $utc = new DateTimeZone('UTC');
-        $start = (new DateTime($startDate))->setTimezone($utc)->format('Y-m-d H:i:s');
-        $end = (new DateTime($endDate))->setTimezone($utc)->format('Y-m-d H:i:s');
+        // "2026-07-19T00:00:00-04:00". Normalize to the system timezone, since
+        // `Db::parseDateParam()` reads date params as system-local and handles the
+        // conversion to the UTC values we store.
+        $tz = new DateTimeZone(Craft::$app->getTimeZone());
+        $start = (new DateTime($startDate))->setTimezone($tz)->format('Y-m-d H:i:s');
+        $end = (new DateTime($endDate))->setTimezone($tz)->format('Y-m-d H:i:s');
 
+        // Overlap, not containment: a booking that straddles either edge of the range
+        // still needs to show up on the calendar.
         $query = Booking::find()
-            ->startDateTime(">= {$start}")
-            ->endDateTime("<= {$end}")
+            ->startDateTime("< {$end}")
+            ->endDateTime("> {$start}")
             ->orderBy(['startDateTime' => SORT_ASC]);
 
         if ($providerId) {
@@ -147,34 +150,56 @@ class Bookings extends Component
 
     public function getBookingStats(): array
     {
-        $today = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d');
-        $weekStart = (new DateTime('monday this week', new DateTimeZone('UTC')))->format('Y-m-d');
-        $weekEnd = (new DateTime('sunday this week', new DateTimeZone('UTC')))->format('Y-m-d');
-        $monthStart = (new DateTime('first day of this month', new DateTimeZone('UTC')))->format('Y-m-d');
-        $monthEnd = (new DateTime('last day of this month', new DateTimeZone('UTC')))->format('Y-m-d');
+        // Periods are relative to the system timezone, not UTC — "today" on the
+        // dashboard means today for the person looking at it.
+        $tz = Craft::$app->getTimeZone();
+
+        [$dayStart, $dayEnd] = TimeHelper::periodBounds('day', $tz);
+        [$weekStart, $weekEnd] = TimeHelper::periodBounds('week', $tz);
+        [$monthStart, $monthEnd] = TimeHelper::periodBounds('month', $tz);
+
+        $utc = new DateTimeZone('UTC');
 
         return [
             'todayCount' => (int)Booking::find()
-                ->startDateTime(">= {$today} 00:00:00")
-                ->startDateTime("<= {$today} 23:59:59")
+                ->startDateTime($this->dateRangeParam($dayStart, $dayEnd))
                 ->bookingStatus('confirmed')
                 ->count(),
 
             'weekCount' => (int)Booking::find()
-                ->startDateTime(">= {$weekStart} 00:00:00")
-                ->startDateTime("<= {$weekEnd} 23:59:59")
+                ->startDateTime($this->dateRangeParam($weekStart, $weekEnd))
                 ->count(),
 
             'pendingCount' => (int)Booking::find()
                 ->bookingStatus('pending')
                 ->count(),
 
+            // `paidAt` is queried directly rather than through `Db::parseDateParam()`,
+            // so these bounds have to be converted to UTC by hand to match how it's
+            // stored. The date params above must NOT be — Craft converts those itself.
             'monthlyRevenue' => (float)(new Query())
                 ->from('{{%stub_bookings}}')
                 ->where(['paymentStatus' => 'paid'])
-                ->andWhere(['>=', 'paidAt', "{$monthStart} 00:00:00"])
-                ->andWhere(['<=', 'paidAt', "{$monthEnd} 23:59:59"])
+                ->andWhere(['>=', 'paidAt', (clone $monthStart)->setTimezone($utc)->format('Y-m-d H:i:s')])
+                ->andWhere(['<=', 'paidAt', (clone $monthEnd)->setTimezone($utc)->format('Y-m-d H:i:s')])
                 ->sum('price'),
+        ];
+    }
+
+    /**
+     * Builds a single inclusive range param for a date query.
+     *
+     * `BookingQuery`'s date setters overwrite rather than merge, so chaining two calls
+     * to bound both ends silently discards the first. Both bounds must go in together.
+     *
+     * @return string[]
+     */
+    private function dateRangeParam(DateTime $start, DateTime $end): array
+    {
+        return [
+            'and',
+            '>= ' . $start->format('Y-m-d H:i:s'),
+            '<= ' . $end->format('Y-m-d H:i:s'),
         ];
     }
 }

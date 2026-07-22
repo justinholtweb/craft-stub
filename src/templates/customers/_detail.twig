@@ -65,7 +65,7 @@
                             <tr>
                                 <td><a href="{{ booking.cpEditUrl }}">{{ booking.referenceNumber }}</a></td>
                                 <td>{{ service ? service.name : '—' }}</td>
-                                <td>{{ booking.startDateTime|date('M j, Y g:i A', timezone=booking.timezone) }}</td>
+                                <td>{{ booking.localStartDateTime|date('M j, Y g:i A', timezone=booking.timezone) }}</td>
                                 <td>
                                     <span class="status {{ booking.bookingStatus == 'confirmed' ? 'green' : (booking.bookingStatus == 'pending' ? 'orange' : (booking.bookingStatus == 'cancelled' ? 'red' : 'blue')) }}"></span>
                                     {{ booking.bookingStatus|capitalize }}

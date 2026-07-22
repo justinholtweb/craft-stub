@@ -36,7 +36,7 @@
                     {% set provider = booking.getProvider() %}
                     <div class="stub-booking-item">
                         <div class="stub-booking-time">
-                            {{ booking.startDateTime|date('g:i A', timezone=booking.timezone) }}
+                            {{ booking.localStartDateTime|date('g:i A', timezone=booking.timezone) }}
                         </div>
                         <div class="stub-booking-info">
                             <div class="stub-booking-service">
