@@ -58,13 +58,13 @@
             rows: 3,
         }) }}
 
-        {{ forms.selectField({
+        {{ forms.timeZoneField({
             label: 'Timezone'|t('stub'),
             id: 'timezone',
             name: 'timezone',
             value: provider.timezone,
-            options: craft.app.i18n.allTimezonesByGroup,
             required: true,
+            errors: provider.getErrors('timezone'),
         }) }}
 
         {{ forms.colorField({

@@ -3,6 +3,7 @@
 namespace justinholtweb\stub\models;
 
 use craft\base\Model;
+use craft\validators\ColorValidator;
 
 class Settings extends Model
 {
@@ -52,7 +53,10 @@ class Settings extends Model
             [['defaultCurrency'], 'string', 'length' => 3],
             [['minimumNotice', 'maxAdvanceBooking', 'slotInterval'], 'integer', 'min' => 1],
             [['adminEmail'], 'email', 'skipOnEmpty' => true],
-            [['primaryColor'], 'match', 'pattern' => '/^#[0-9a-fA-F]{6}$/'],
+            // Craft's color input posts the hex without a leading `#`, so normalize
+            // before matching. The pattern excludes `transparent`, which is not a
+            // usable value for the front-end accent color.
+            [['primaryColor'], ColorValidator::class, 'pattern' => '/^#[0-9a-f]{6}$/'],
             [['bookingsPerHour', 'paymentIntentsPerHour'], 'integer', 'min' => 0],
             [['honeypotFieldName'], 'string', 'max' => 50],
             [['enableHoneypot'], 'boolean'],

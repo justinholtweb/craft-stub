@@ -1,5 +1,15 @@
 # Changelog
 
+## 5.0.3 - 2026-07-24
+
+### Fixed
+- Saving a service always failed with "Couldn't save service." Craft's color input posts the
+  hex without a leading `#`, but the `color` rule required one, so validation could never
+  pass. The same rule blocked provider saves and the plugin settings' primary color.
+- The New Provider page threw a Twig runtime error (`Calling unknown method:
+  craft\i18n\I18N::allTimezonesByGroup()`). Replaced the hand-rolled select with Craft's
+  `timeZoneField`.
+
 ## 5.0.2 - 2026-07-22
 
 ### Updated

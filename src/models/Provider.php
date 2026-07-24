@@ -3,6 +3,7 @@
 namespace justinholtweb\stub\models;
 
 use craft\base\Model;
+use craft\validators\ColorValidator;
 
 class Provider extends Model
 {
@@ -48,7 +49,10 @@ class Provider extends Model
             [['name', 'handle'], 'string', 'max' => 255],
             [['handle'], 'match', 'pattern' => '/^[a-zA-Z][a-zA-Z0-9_]*$/'],
             [['email'], 'email', 'skipOnEmpty' => true],
-            [['color'], 'match', 'pattern' => '/^#[0-9a-fA-F]{6}$/'],
+            // Craft's color input posts the hex without a leading `#`, so normalize
+            // before matching. The pattern excludes `transparent` (too long for the
+            // `char(7)` column) that ColorValidator would otherwise allow.
+            [['color'], ColorValidator::class, 'pattern' => '/^#[0-9a-f]{6}$/'],
         ];
     }
 }
