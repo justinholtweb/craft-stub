@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.5.0 - 2026-07-25
+
+### Added
+- `$stripeWebhookRouter` — when Stub runs as a module of a host bundle that owns the Stripe
+  account, the host can take over webhook handling so this endpoint and the bundle's verify
+  and route identically. Sites that pointed Stripe at `/actions/stub/webhook/handle` before
+  bundling keep working, and behave the same as ones using the bundle's endpoint. Null
+  (standalone) → Stub handles it itself, unchanged.
+
 ## 5.4.0 - 2026-07-25
 
 ### Added

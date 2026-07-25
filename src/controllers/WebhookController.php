@@ -23,7 +23,14 @@ class WebhookController extends Controller
             return $this->asJson(['error' => 'Missing signature.'])->setStatusCode(400);
         }
 
-        $success = Plugin::getInstance()->payments->handleWebhookEvent($payload, $sigHeader);
+        // When mounted in a host bundle, hand off so this endpoint and the bundle's behave
+        // identically — same verification, same routing — for sites already pointing Stripe
+        // here.
+        $router = Plugin::getInstance()->stripeWebhookRouter;
+
+        $success = $router !== null
+            ? (bool)call_user_func($router, $payload, $sigHeader)
+            : Plugin::getInstance()->payments->handleWebhookEvent($payload, $sigHeader);
 
         if (!$success) {
             return $this->asJson(['error' => 'Webhook handling failed.'])->setStatusCode(400);

@@ -54,6 +54,18 @@ class Plugin extends BasePlugin
      */
     public bool $mountedUnderShowtime = false;
 
+    /**
+     * Set by the host when mounted: fn(string $payload, string $sigHeader): bool.
+     *
+     * When a host bundle owns the Stripe account, every webhook should be verified and
+     * routed the same way no matter which URL Stripe was pointed at — otherwise a site that
+     * configured this plugin's endpoint before bundling behaves subtly differently from one
+     * that used the bundle's. Null (standalone) → Stub handles it itself.
+     *
+     * @var callable|null
+     */
+    public $stripeWebhookRouter = null;
+
     public static function config(): array
     {
         return [
