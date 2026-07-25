@@ -23,6 +23,7 @@ use justinholtweb\stub\services\Providers;
 use justinholtweb\stub\services\Services;
 use justinholtweb\stub\variables\StubVariable;
 use yii\base\Event;
+use yii\base\Exception;
 
 /**
  * Stub — Booking & Appointments for Craft CMS
@@ -122,6 +123,25 @@ class Plugin extends BasePlugin
         return $nav;
     }
 
+    /**
+     * Refuse to install alongside a host bundle that already includes Stub.
+     *
+     * Both would register the Booking element type and share the `stub_*` tables, and
+     * uninstalling either would then drop the other's data. The guard is skipped when the
+     * host is installing Stub *as* a mounted module — that call is exactly this method
+     * running with $mountedUnderShowtime already true.
+     */
+    protected function beforeInstall(): void
+    {
+        if (!$this->mountedUnderShowtime && Craft::$app->getPlugins()->isPluginInstalled('showtime')) {
+            throw new Exception(
+                'Stub is already included in the Showtime bundle, which is installed on this site. ' .
+                'Installing it separately would register a second Booking element type and collide ' .
+                'on the stub_* tables. Use Showtime’s bundled copy instead.'
+            );
+        }
+    }
+
     protected function createSettingsModel(): ?Model
     {
         return new Settings();
@@ -192,34 +212,51 @@ class Plugin extends BasePlugin
         );
     }
 
+    /**
+     * The permissions Stub defines, keyed by permission name.
+     *
+     * Exposed so a host bundle can list them under its own single heading rather than
+     * showing one heading per bundled plugin. The keys are the contract — controllers, nav
+     * items and user groups all reference them — so they never change between modes.
+     */
+    public static function permissionDefinitions(): array
+    {
+        return [
+            'stub:viewBookings' => [
+                'label' => Craft::t('stub', 'View bookings'),
+            ],
+            'stub:manageBookings' => [
+                'label' => Craft::t('stub', 'Manage bookings'),
+            ],
+            'stub:deleteBookings' => [
+                'label' => Craft::t('stub', 'Delete bookings'),
+            ],
+            'stub:manageServices' => [
+                'label' => Craft::t('stub', 'Manage services'),
+            ],
+            'stub:manageProviders' => [
+                'label' => Craft::t('stub', 'Manage providers'),
+            ],
+            'stub:manageCustomers' => [
+                'label' => Craft::t('stub', 'Manage customers'),
+            ],
+        ];
+    }
+
     private function _registerPermissions(): void
     {
+        // Mounted, the host registers these under one combined heading.
+        if ($this->mountedUnderShowtime) {
+            return;
+        }
+
         Event::on(
             UserPermissions::class,
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function(RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
                     'heading' => Craft::t('stub', 'Stub'),
-                    'permissions' => [
-                        'stub:viewBookings' => [
-                            'label' => Craft::t('stub', 'View bookings'),
-                        ],
-                        'stub:manageBookings' => [
-                            'label' => Craft::t('stub', 'Manage bookings'),
-                        ],
-                        'stub:deleteBookings' => [
-                            'label' => Craft::t('stub', 'Delete bookings'),
-                        ],
-                        'stub:manageServices' => [
-                            'label' => Craft::t('stub', 'Manage services'),
-                        ],
-                        'stub:manageProviders' => [
-                            'label' => Craft::t('stub', 'Manage providers'),
-                        ],
-                        'stub:manageCustomers' => [
-                            'label' => Craft::t('stub', 'Manage customers'),
-                        ],
-                    ],
+                    'permissions' => static::permissionDefinitions(),
                 ];
             }
         );

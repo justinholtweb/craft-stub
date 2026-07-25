@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.2.0 - 2026-07-25
+
+### Added
+- Stub now refuses to install on a site where a host bundle that already includes it is
+  installed. Both copies would register the Booking element type and share the `stub_*`
+  tables, and uninstalling either would then drop the other's data.
+- `Plugin::permissionDefinitions()` exposes Stub's permissions, so a host bundle can list
+  them under a single combined heading instead of one heading per bundled plugin. The
+  permission keys are unchanged, so existing user groups keep working. Installed standalone,
+  Stub registers its own "Stub" heading exactly as before.
+
 ## 5.1.1 - 2026-07-25
 
 ### Security
