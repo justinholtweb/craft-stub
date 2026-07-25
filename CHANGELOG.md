@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.5.1 - 2026-07-25
+
+### Fixed
+- The provider schedule page threw a Twig syntax error (`Unexpected token "name" of value
+  "if"`) and would not render. The weekly hours loop used the inline `{% for ... if ... %}`
+  form, which Twig 3 removed; it now filters with `|filter()`. This was the last of three
+  faults stacked in the same template — each one masked the next, since the lexer error
+  fixed in 5.0.4 aborted before the parser ever reached this line.
+
 ## 5.5.0 - 2026-07-25
 
 ### Added

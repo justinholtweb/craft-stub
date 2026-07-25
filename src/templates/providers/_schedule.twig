@@ -33,7 +33,7 @@
             <tbody>
                 {% for i in 0..6 %}
                     {% set schedule = null %}
-                    {% for s in provider.schedules if s.dayOfWeek == i %}
+                    {% for s in provider.schedules|filter(s => s.dayOfWeek == i) %}
                         {% set schedule = s %}
                     {% endfor %}
                     <tr>
