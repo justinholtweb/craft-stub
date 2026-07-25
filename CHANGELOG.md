@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.3.0 - 2026-07-25
+
+### Added
+- `BookingEvent::$isValid` — an `EVENT_BEFORE_SAVE_BOOKING` handler can now refuse a booking
+  outright by setting it to false, and add an error explaining why (a generic one is added
+  if it doesn't). Previously the event could observe and mutate a booking but not veto it,
+  so there was no way to make a service conditional on anything Stub doesn't know about.
+  Defaults to true, so existing handlers are unaffected.
+
 ## 5.2.0 - 2026-07-25
 
 ### Added

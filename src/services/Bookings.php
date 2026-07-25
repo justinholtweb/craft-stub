@@ -54,6 +54,15 @@ class Bookings extends Component
         $event = new BookingEvent(['booking' => $booking, 'isNew' => true]);
         $this->trigger(self::EVENT_BEFORE_SAVE_BOOKING, $event);
 
+        // A handler can refuse the booking outright — e.g. a service restricted to members.
+        if (!$event->isValid) {
+            if (!$booking->hasErrors()) {
+                $booking->addError('serviceId', Craft::t('stub', 'This booking isn’t available.'));
+            }
+
+            return $booking;
+        }
+
         if (!Craft::$app->getElements()->saveElement($booking)) {
             return $booking;
         }
