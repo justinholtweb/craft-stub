@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.4.0 - 2026-07-25
+
+### Added
+- `Availability::EVENT_DEFINE_BUSY_INTERVALS` — other code can now contribute windows in
+  which a provider is unavailable, and those windows stop producing bookable slots exactly
+  as an existing booking does. Stub only knows about its own bookings, but a provider can be
+  busy for reasons it has no concept of: running a class, a synced external calendar, an
+  all-hands. Handlers append UTC intervals to `BusyIntervalsEvent::$intervals`.
+
 ## 5.3.0 - 2026-07-25
 
 ### Added

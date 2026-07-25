@@ -5,12 +5,19 @@ namespace justinholtweb\stub\services;
 use craft\db\Query;
 use DateTime;
 use DateTimeZone;
+use justinholtweb\stub\events\BusyIntervalsEvent;
 use justinholtweb\stub\helpers\TimeHelper;
 use justinholtweb\stub\Plugin;
 use yii\base\Component;
 
 class Availability extends Component
 {
+    /**
+     * @event BusyIntervalsEvent Fired when working out which windows a provider is
+     * unavailable in, so other code can contribute its own.
+     */
+    public const EVENT_DEFINE_BUSY_INTERVALS = 'defineBusyIntervals';
+
     /**
      * Get available dates for a provider+service in a given month.
      *
@@ -202,9 +209,13 @@ class Availability extends Component
         return $slots;
     }
 
+    /**
+     * Every window in which this provider is unavailable — their own bookings, plus anything
+     * another plugin contributes via EVENT_DEFINE_BUSY_INTERVALS.
+     */
     private function _getExistingBookings(int $providerId, string $startUtc, string $endUtc): array
     {
-        return (new Query())
+        $intervals = (new Query())
             ->select(['startDateTime', 'endDateTime'])
             ->from('{{%stub_bookings}}')
             ->where(['providerId' => $providerId])
@@ -212,5 +223,19 @@ class Availability extends Component
             ->andWhere(['<', 'startDateTime', $endUtc])
             ->andWhere(['>', 'endDateTime', $startUtc])
             ->all();
+
+        // A provider can be busy for reasons Stub knows nothing about — running a class,
+        // a synced external calendar. Handlers append UTC intervals and those windows stop
+        // producing bookable slots, exactly as an existing booking does.
+        $event = new BusyIntervalsEvent([
+            'providerId' => $providerId,
+            'startUtc' => $startUtc,
+            'endUtc' => $endUtc,
+            'intervals' => $intervals,
+        ]);
+
+        $this->trigger(self::EVENT_DEFINE_BUSY_INTERVALS, $event);
+
+        return $event->intervals;
     }
 }
