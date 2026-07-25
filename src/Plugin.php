@@ -43,6 +43,16 @@ class Plugin extends BasePlugin
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
+    /**
+     * When true, Stub is running as an internal module mounted inside the Showtime bundle
+     * plugin rather than installed as a standalone plugin. In that mode Stub boots its
+     * feature wiring but leaves control-panel "chrome" (nav, settings screen) to the
+     * Showtime host, which unifies it with the other bundled plugins.
+     *
+     * Default false → standalone behavior is unchanged.
+     */
+    public bool $mountedUnderShowtime = false;
+
     public static function config(): array
     {
         return [
@@ -62,12 +72,37 @@ class Plugin extends BasePlugin
     {
         parent::init();
 
+        $this->bootFeatures();
+
+        if (!$this->mountedUnderShowtime) {
+            $this->bootChrome();
+        }
+    }
+
+    /**
+     * Functionality that must run in BOTH modes (standalone and mounted under Showtime).
+     */
+    private function bootFeatures(): void
+    {
         $this->_registerElementTypes();
         $this->_registerVariables();
         $this->_registerCpRoutes();
         $this->_registerSiteRoutes();
         $this->_registerPermissions();
         $this->_registerEmailMessages();
+    }
+
+    /**
+     * Control-panel chrome that only applies when Stub is installed as its own plugin.
+     * When mounted under Showtime, the host owns the nav and the settings screen.
+     *
+     * Stub's nav and settings page are served via hasCpSection/hasCpSettings +
+     * getCpNavItem()/settingsHtml(), which Craft only invokes for an installed plugin —
+     * so there is nothing to unwire here. Kept so all bundled plugins share one mount
+     * shape, and as the hook for anything chrome-ish added later.
+     */
+    private function bootChrome(): void
+    {
     }
 
     public function getCpNavItem(): ?array

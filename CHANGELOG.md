@@ -1,5 +1,19 @@
 # Changelog
 
+## 5.1.0 - 2026-07-25
+
+### Added
+- A mount seam, so Stub can run as an internal module of a host bundle plugin instead of as
+  its own installed plugin: a `mountedUnderShowtime` flag plus a `bootFeatures()` /
+  `bootChrome()` split, where the host takes over the control-panel nav and settings screen
+  and everything else boots identically. Standalone behavior is unchanged — the flag
+  defaults to false and `bootChrome()` runs as before.
+
+### Changed
+- Widened the `stripe/stripe-php` constraint to `^13.0 || ^14.0 || ^15.0 || ^16.0`. It was
+  pinned to `^13.0`, which conflicted with other plugins on a newer major and forced
+  Composer to resolve the whole project down to Stripe 13.
+
 ## 5.0.4 - 2026-07-25
 
 ### Fixed
