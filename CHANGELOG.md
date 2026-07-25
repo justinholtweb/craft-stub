@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.0.4 - 2026-07-25
+
+### Fixed
+- The provider schedule page threw a Twig syntax error (`Unexpected character ";"`) and would
+  not render. An unescaped apostrophe in a single-quoted string left the lexer with an
+  unterminated string, which cascaded through the rest of the file until it hit a character
+  that was invalid in an expression — so the reported line was 121 lines past the actual fault.
+- The weekly hours day toggles were inert and always appeared switched on. The markup was
+  hand-rolled with a hardcoded `on` class and none of the structure `Craft.LightSwitch` binds
+  to, so a day's stored enabled state was never reflected and clicking the switch did nothing.
+  Replaced with Craft's `lightswitch` macro, labelled by its day cell.
+
 ## 5.0.3 - 2026-07-24
 
 ### Fixed

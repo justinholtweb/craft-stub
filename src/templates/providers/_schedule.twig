@@ -6,6 +6,8 @@
 {% set days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
 
 {% block content %}
+    {% import '_includes/forms' as forms %}
+
     <div class="toolbar">
         <a href="{{ cpUrl('stub/providers/' ~ provider.id) }}" class="btn">{{ '← Back to Provider'|t('stub') }}</a>
     </div>
@@ -17,7 +19,7 @@
         {{ actionInput('stub/providers/save-schedule') }}
         {{ hiddenInput('providerId', provider.id) }}
 
-        <p class="light">{{ 'Times are in the provider's timezone:'|t('stub') }} <strong>{{ provider.timezone }}</strong></p>
+        <p class="light">{{ 'Times are in the provider\'s timezone:'|t('stub') }} <strong>{{ provider.timezone }}</strong></p>
 
         <table class="data fullwidth">
             <thead>
@@ -35,16 +37,14 @@
                         {% set schedule = s %}
                     {% endfor %}
                     <tr>
-                        <td>{{ days[i] }}</td>
+                        <td id="schedule-day-{{ i }}">{{ days[i] }}</td>
                         <td>
                             {{ hiddenInput('schedules[' ~ i ~ '][dayOfWeek]', i) }}
-                            <div class="lightswitch on" tabindex="0">
-                                {{ tag('input', {
-                                    type: 'hidden',
-                                    name: 'schedules[' ~ i ~ '][enabled]',
-                                    value: schedule ? schedule.enabled : (i >= 1 and i <= 5 ? '1' : '0'),
-                                }) }}
-                            </div>
+                            {{ forms.lightswitch({
+                                name: 'schedules[' ~ i ~ '][enabled]',
+                                on: schedule ? schedule.enabled : (i >= 1 and i <= 5),
+                                labelledBy: 'schedule-day-' ~ i,
+                            }) }}
                         </td>
                         <td>
                             <input type="time" name="schedules[{{ i }}][startTime]" value="{{ schedule ? schedule.startTime : '09:00' }}">
