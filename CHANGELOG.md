@@ -1,5 +1,18 @@
 # Changelog
 
+## 5.1.1 - 2026-07-25
+
+### Security
+- **Stored XSS in the front-end booking form.** Provider cards were built by interpolating
+  the AJAX response into an HTML string, and `data-name="${p.name}"` went in raw. The helper
+  used for the visible text escaped `&`, `<` and `>` but not quotes, so it would not have
+  helped in an attribute either. A provider name containing a double quote could therefore
+  break out of the attribute and run script for every visitor of the public booking form —
+  reachable by any control-panel user with `stub:manageProviders`, not just admins. Provider
+  cards and time slots are now built with `document.createElement` + `textContent` +
+  `dataset`, which encode correctly in both text and attribute contexts, so no part of a
+  response is interpolated into markup. The unused `escHtml()` helper was removed.
+
 ## 5.1.0 - 2026-07-25
 
 ### Added

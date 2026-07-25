@@ -97,14 +97,29 @@
                 return;
             }
 
-            container.innerHTML = resp.providers.map(p => `
-                <div class="stub-provider-card" data-id="${p.id}" data-name="${p.name}">
-                    <div class="stub-provider-name">${this.escHtml(p.name)}</div>
-                    ${p.bio ? `<div class="stub-provider-bio">${this.escHtml(p.bio)}</div>` : ''}
-                </div>
-            `).join('');
+            // Built as DOM nodes rather than an HTML string: provider names and bios are
+            // authored in the control panel by anyone with `stub:manageProviders`, and this
+            // form is public, so a name like `" onmouseover="…` interpolated into an
+            // attribute was stored XSS against every visitor. textContent and dataset encode
+            // correctly for text and attribute contexts alike.
+            container.replaceChildren(...resp.providers.map(p => {
+                const card = document.createElement('div');
+                card.className = 'stub-provider-card';
+                card.dataset.id = p.id;
+                card.dataset.name = p.name;
 
-            container.querySelectorAll('.stub-provider-card').forEach(card => {
+                const name = document.createElement('div');
+                name.className = 'stub-provider-name';
+                name.textContent = p.name;
+                card.append(name);
+
+                if (p.bio) {
+                    const bio = document.createElement('div');
+                    bio.className = 'stub-provider-bio';
+                    bio.textContent = p.bio;
+                    card.append(bio);
+                }
+
                 card.addEventListener('click', () => {
                     container.querySelectorAll('.stub-provider-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
@@ -112,7 +127,9 @@
                     this.data.providerName = card.dataset.name;
                     this.loadCalendar();
                 });
-            });
+
+                return card;
+            }));
         }
 
         // Step 3: Date & Time
@@ -211,13 +228,21 @@
                 return;
             }
 
-            slotsContainer.innerHTML = '<div class="stub-slots">' +
-                slots.map(s => `<div class="stub-slot" data-time="${s.time}" data-utc="${s.utc}" data-display="${s.display}">${s.display}</div>`).join('') +
-                '</div>';
+            // Server-formatted strings, but built as nodes for the same reason as the
+            // provider cards — nothing from a response gets interpolated into markup.
+            const slotsWrapper = document.createElement('div');
+            slotsWrapper.className = 'stub-slots';
 
-            slotsContainer.querySelectorAll('.stub-slot').forEach(slot => {
+            slotsWrapper.append(...slots.map(s => {
+                const slot = document.createElement('div');
+                slot.className = 'stub-slot';
+                slot.dataset.time = s.time;
+                slot.dataset.utc = s.utc;
+                slot.dataset.display = s.display;
+                slot.textContent = s.display;
+
                 slot.addEventListener('click', () => {
-                    slotsContainer.querySelectorAll('.stub-slot').forEach(s => s.classList.remove('selected'));
+                    slotsContainer.querySelectorAll('.stub-slot').forEach(el => el.classList.remove('selected'));
                     slot.classList.add('selected');
                     this.data.time = slot.dataset.time;
                     this.data.timeDisplay = slot.dataset.display;
@@ -227,7 +252,11 @@
                     const btn = this.el.querySelector('#stub-datetime-next');
                     if (btn) btn.disabled = false;
                 });
-            });
+
+                return slot;
+            }));
+
+            slotsContainer.replaceChildren(slotsWrapper);
         }
 
         // Step 4: Customer Info
@@ -391,11 +420,6 @@
             return response.json();
         }
 
-        escHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
     }
 
     // Auto-init
