@@ -12,8 +12,11 @@ it('formats known currencies with their symbol', function() {
         ->and(BookingHelper::formatPrice(10.0, 'AUD'))->toBe('A$10.00');
 });
 
-it('falls back to the currency code for unknown currencies', function() {
-    expect(BookingHelper::formatPrice(10.0, 'JPY'))->toBe('JPY 10.00');
+it('formats currencies beyond the built-in picker list', function() {
+    // formatPrice no longer carries its own symbol map, so a currency it has never
+    // been told about still renders properly rather than falling back to the code.
+    expect(BookingHelper::formatPrice(10.0, 'CHF'))->toBe("CHF\u{A0}10.00")
+        ->and(BookingHelper::formatPrice(1000.0, 'JPY'))->toBe('¥1,000');
 });
 
 it('always formats to two decimal places with thousands separators', function() {

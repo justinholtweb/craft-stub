@@ -16,6 +16,7 @@ use justinholtweb\stub\elements\Booking;
 use justinholtweb\stub\models\Settings;
 use justinholtweb\stub\services\Availability;
 use justinholtweb\stub\services\Bookings;
+use justinholtweb\stub\services\Currencies;
 use justinholtweb\stub\services\Customers;
 use justinholtweb\stub\services\Emails;
 use justinholtweb\stub\services\Payments;
@@ -33,6 +34,7 @@ use yii\base\Exception;
  * @property Bookings $bookings
  * @property Availability $availability
  * @property Customers $customers
+ * @property Currencies $currencies
  * @property Payments $payments
  * @property Emails $emails
  * @property Settings $settings
@@ -75,6 +77,7 @@ class Plugin extends BasePlugin
                 'bookings' => Bookings::class,
                 'availability' => Availability::class,
                 'customers' => Customers::class,
+                'currencies' => Currencies::class,
                 'payments' => Payments::class,
                 'emails' => Emails::class,
             ],
@@ -164,6 +167,7 @@ class Plugin extends BasePlugin
         return Craft::$app->getView()->renderTemplate('stub/settings', [
             'settings' => $this->getSettings(),
             'plugin' => $this,
+            'currencyOptions' => $this->currencies->getCurrencyOptions($this->getSettings()->defaultCurrency),
         ]);
     }
 
@@ -274,30 +278,64 @@ class Plugin extends BasePlugin
         );
     }
 
+    /**
+     * The emails Stub sends, keyed by their Craft system-message key.
+     *
+     * One source of truth: this both registers the messages with Craft (so their copy is
+     * editable and translatable in the control panel) and describes them to a host bundle
+     * that wants to list every bundled plugin's notifications on one screen. `setting` names
+     * the settings attribute that switches each one on or off.
+     *
+     * `variables` lists the placeholders the body may use — the harness renders each body
+     * against exactly that set, so copy referring to anything else is caught before a
+     * customer's email silently fails to send.
+     *
+     * @return array<string, array{heading: string, description: string, setting: string, subject: string, body: string, variables: string[]}>
+     */
+    public static function emailDefinitions(): array
+    {
+        return [
+            'stub_booking_confirmation' => [
+                'variables' => ['referenceNumber', 'customerName', 'customerEmail', 'serviceName', 'providerName', 'dateFormatted', 'timeFormatted', 'priceFormatted', 'timezone'],
+                'heading' => Craft::t('stub', 'Booking Confirmation'),
+                'description' => Craft::t('stub', 'Sent to the customer when their booking is created.'),
+                'setting' => 'sendCustomerConfirmation',
+                'subject' => Craft::t('stub', 'Your booking has been confirmed — {{referenceNumber}}'),
+                'body' => Craft::t('stub', "Hi {{customerName}},\n\nYour booking for {{serviceName}} with {{providerName}} on {{dateFormatted}} at {{timeFormatted}} has been confirmed.\n\nReference: {{referenceNumber}}\n\nThank you!"),
+            ],
+            'stub_admin_notification' => [
+                'variables' => ['referenceNumber', 'customerName', 'customerEmail', 'serviceName', 'providerName', 'dateFormatted', 'timeFormatted', 'priceFormatted', 'timezone'],
+                'heading' => Craft::t('stub', 'New Booking Notification'),
+                'description' => Craft::t('stub', 'Sent to the admin address when any booking is created.'),
+                'setting' => 'sendAdminNotification',
+                'subject' => Craft::t('stub', 'New booking: {{referenceNumber}}'),
+                'body' => Craft::t('stub', "A new booking has been created.\n\nReference: {{referenceNumber}}\nService: {{serviceName}}\nProvider: {{providerName}}\nCustomer: {{customerName}}\nDate: {{dateFormatted}} at {{timeFormatted}}"),
+            ],
+            'stub_booking_cancellation' => [
+                'variables' => ['referenceNumber', 'customerName', 'customerEmail', 'serviceName', 'providerName', 'dateFormatted', 'timeFormatted', 'priceFormatted', 'timezone'],
+                'heading' => Craft::t('stub', 'Booking Cancellation'),
+                'description' => Craft::t('stub', 'Sent to the customer and the admin address when a booking is cancelled.'),
+                'setting' => 'sendCancellationEmail',
+                'subject' => Craft::t('stub', 'Booking cancelled — {{referenceNumber}}'),
+                'body' => Craft::t('stub', "Hi {{customerName}},\n\nYour booking {{referenceNumber}} for {{serviceName}} on {{dateFormatted}} at {{timeFormatted}} has been cancelled.\n\nIf you have any questions, please contact us."),
+            ],
+        ];
+    }
+
     private function _registerEmailMessages(): void
     {
         Event::on(
             \craft\services\SystemMessages::class,
             \craft\services\SystemMessages::EVENT_REGISTER_MESSAGES,
             function(\craft\events\RegisterEmailMessagesEvent $event) {
-                $event->messages[] = [
-                    'key' => 'stub_booking_confirmation',
-                    'heading' => Craft::t('stub', 'Booking Confirmation'),
-                    'subject' => Craft::t('stub', 'Your booking has been confirmed — {{referenceNumber}}'),
-                    'body' => Craft::t('stub', "Hi {{customerName}},\n\nYour booking for {{serviceName}} with {{providerName}} on {{dateFormatted}} at {{timeFormatted}} has been confirmed.\n\nReference: {{referenceNumber}}\n\nThank you!"),
-                ];
-                $event->messages[] = [
-                    'key' => 'stub_admin_notification',
-                    'heading' => Craft::t('stub', 'New Booking Notification'),
-                    'subject' => Craft::t('stub', 'New booking: {{referenceNumber}}'),
-                    'body' => Craft::t('stub', "A new booking has been created.\n\nReference: {{referenceNumber}}\nService: {{serviceName}}\nProvider: {{providerName}}\nCustomer: {{customerName}}\nDate: {{dateFormatted}} at {{timeFormatted}}"),
-                ];
-                $event->messages[] = [
-                    'key' => 'stub_booking_cancellation',
-                    'heading' => Craft::t('stub', 'Booking Cancellation'),
-                    'subject' => Craft::t('stub', 'Booking cancelled — {{referenceNumber}}'),
-                    'body' => Craft::t('stub', "Hi {{customerName}},\n\nYour booking {{referenceNumber}} for {{serviceName}} on {{dateFormatted}} at {{timeFormatted}} has been cancelled.\n\nIf you have any questions, please contact us."),
-                ];
+                foreach (static::emailDefinitions() as $key => $definition) {
+                    $event->messages[] = [
+                        'key' => $key,
+                        'heading' => $definition['heading'],
+                        'subject' => $definition['subject'],
+                        'body' => $definition['body'],
+                    ];
+                }
             }
         );
     }

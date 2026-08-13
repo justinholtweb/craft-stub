@@ -105,13 +105,47 @@ Six granular permissions:
 - `stub:viewBookings`, `stub:manageBookings`, `stub:deleteBookings`
 - `stub:manageServices`, `stub:manageProviders`, `stub:manageCustomers`
 
+## Currencies
+
+The currency picker offers 25 common currencies (USD, EUR, GBP, CHF, CAD, AUD, NZD, JPY,
+SEK, NOK, DKK, PLN, CZK, HUF, ZAR, SGD, HKD, INR, BRL, MXN, ILS, AED, TRY, KRW, THB). Each
+service can override the site default, and prices are formatted with the currency's own
+symbol, decimal count and symbol placement.
+
+**With Craft Commerce installed**, any currency configured on a Commerce store is offered
+too, automatically. Commerce is not a dependency — nothing changes on a site without it.
+
+A currency already saved on a service is always kept in its picker, even if it's since been
+removed from Commerce, so editing that service can't silently re-price it.
+
+In templates:
+
+```twig
+{{ craft.stub.formatPrice(service.price, service.currency) }}  {# CHF 10.00 #}
+{{ craft.stub.currencies() }}                                  {# { USD: 'US Dollar', … } #}
+```
+
+In PHP:
+
+```php
+use justinholtweb\stub\services\Currencies;
+
+Currencies::format(1000.0, 'JPY');        // ¥1,000
+Currencies::toMinorUnits(1000.0, 'JPY');  // 1000 — what Stripe charges
+Plugin::getInstance()->currencies->getAvailableCurrencies();
+```
+
+> **Stripe:** which currencies your account can actually settle in depends on the country
+> it's registered in. Stub will happily price a service in any valid code; if Stripe rejects
+> it, that's an account limitation rather than a plugin one.
+
 ## Configuration
 
 All settings are in **Settings → Stub** or via `config/stub.php`:
 
 ### General
 - `pluginName` — Display name in CP sidebar (default: "Stub")
-- `defaultCurrency` — 3-letter currency code (default: USD)
+- `defaultCurrency` — 3-letter ISO 4217 currency code (default: USD). See [Currencies](#currencies).
 - `defaultTimezone` — IANA timezone for new providers (default: America/New_York)
 - `minimumNotice` — Minutes before a booking can be made (default: 60)
 - `maxAdvanceBooking` — Days into the future bookings are allowed (default: 90)

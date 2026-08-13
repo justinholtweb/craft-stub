@@ -63,7 +63,7 @@ src/
 │   ├── BookingEvent.php            # Fired on booking save/status change
 │   └── PaymentEvent.php            # Fired on payment completion
 ├── helpers/
-│   ├── BookingHelper.php           # Reference number generation, price formatting
+│   ├── BookingHelper.php           # Reference number generation, price formatting (delegates to Currencies)
 │   └── TimeHelper.php              # UTC conversion, timezone math, overlap detection
 ├── migrations/
 │   └── Install.php                 # Creates all 9 tables, drops on uninstall
@@ -72,6 +72,7 @@ src/
 ├── services/
 │   ├── Availability.php            # Time slot generation engine
 │   ├── Bookings.php                # Booking lifecycle, status transitions, events
+│   ├── Currencies.php              # Currency list, ICU formatting, Stripe minor units
 │   ├── Customers.php               # Find/create customers, Craft user linking
 │   ├── Emails.php                  # Email dispatch via Craft system messages
 │   ├── Payments.php                # Stripe PaymentIntent, webhook handling
@@ -132,6 +133,28 @@ Transitions happen in `Bookings::updateStatus()` which fires events and triggers
 - AJAX responses use `$this->asJson()`
 - Frontend controllers use `protected array|int|bool $allowAnonymous = [...]`
 - Webhook controllers set `public $enableCsrfValidation = false`
+
+### Currency Handling
+- The currency list has ONE source: `Currencies::commonCurrencies()`. Never hardcode a
+  currency list in a template again — pass `currencyOptions` from the controller instead.
+- Never write `price * 100` for a Stripe amount. Zero-decimal currencies (JPY, KRW, VND,
+  CLP, XOF, …) have no minor unit and would be charged 100× too much. Use
+  `Currencies::toMinorUnits()`, which follows **Stripe's** table, not ICU's — the two
+  disagree (ICU calls ISK zero-decimal; Stripe bills it in aurar).
+- Never format a price with `|number_format(2)` or a symbol map. Two decimals and
+  symbol-before-amount are both wrong for plenty of currencies. Use
+  `craft.stub.formatPrice()` in Twig or `Currencies::format()` in PHP; ICU knows the
+  symbol, decimal count and placement for every code.
+- `Currencies` splits deliberately: **static** methods are pure currency facts and work
+  without a booted Craft (so they're unit-testable); **instance** methods answer "what can
+  this site offer?" and need the app.
+- Craft Commerce is read defensively — it is NOT a dependency. Every call is behind
+  `isPluginEnabled` / `method_exists` / try-catch, and any failure degrades to the built-in
+  list rather than taking the settings screen down.
+- Always pass the currently-saved code into `getCurrencyOptions($current)` so a record
+  priced in a currency that's since disappeared from Commerce keeps its own value.
+- ICU separates a letter-code symbol from the amount with a **non-breaking space**
+  (`CHF<NBSP>10.00`). Tests asserting on formatted output must use `\u{A0}`, not a space.
 
 ### Timezone Handling
 - Provider schedules are stored in the provider's IANA timezone

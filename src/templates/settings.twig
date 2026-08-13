@@ -13,16 +13,11 @@
 
 {{ forms.selectField({
     label: 'Default Currency'|t('stub'),
+    instructions: 'Used for new services. Individual services can override it.'|t('stub'),
     id: 'defaultCurrency',
     name: 'defaultCurrency',
     value: settings.defaultCurrency,
-    options: [
-        { label: 'USD', value: 'USD' },
-        { label: 'EUR', value: 'EUR' },
-        { label: 'GBP', value: 'GBP' },
-        { label: 'CAD', value: 'CAD' },
-        { label: 'AUD', value: 'AUD' },
-    ],
+    options: currencyOptions,
     errors: settings.getErrors('defaultCurrency'),
 }) }}
 
@@ -92,6 +87,14 @@
     id: 'allowCustomerNotes',
     name: 'allowCustomerNotes',
     on: settings.allowCustomerNotes,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Link Customers to Users'|t('stub'),
+    instructions: 'Attach a customer record to the Craft user with the same email address, so a member who books as a guest is still recognised. Turn off if a shared address shouldn’t imply one person.'|t('stub'),
+    id: 'linkCustomersToUsers',
+    name: 'linkCustomersToUsers',
+    on: settings.linkCustomersToUsers,
 }) }}
 
 {{ forms.textField({

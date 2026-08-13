@@ -19,6 +19,16 @@ class Settings extends Model
     public bool $autoConfirmFreeBookings = true;
     public bool $requirePhone = false;
     public bool $allowCustomerNotes = true;
+
+    /**
+     * Attach a customer to the Craft user with the same email address.
+     *
+     * On by default, which is what Stub has always done for new customers; this extends it
+     * to a customer who books again after registering an account, and makes it switchable
+     * for sites where a shared address (a household, an office) shouldn't imply one person.
+     */
+    public bool $linkCustomersToUsers = true;
+
     public string $referencePrefix = 'STB';
     public string $bookingPageUrl = '';
     public string $termsUrl = '';
@@ -51,6 +61,10 @@ class Settings extends Model
             [['pluginName', 'defaultCurrency', 'defaultTimezone'], 'required'],
             [['pluginName'], 'string', 'max' => 50],
             [['defaultCurrency'], 'string', 'length' => 3],
+            // ISO 4217 alphabetic codes are uppercase; the shape check is deliberately
+            // looser than a list membership check, since Commerce can supply codes the
+            // built-in picker list doesn't carry.
+            [['defaultCurrency'], 'match', 'pattern' => '/^[A-Z]{3}$/'],
             [['minimumNotice', 'maxAdvanceBooking', 'slotInterval'], 'integer', 'min' => 1],
             [['adminEmail'], 'email', 'skipOnEmpty' => true],
             // Craft's color input posts the hex without a leading `#`, so normalize
@@ -59,7 +73,7 @@ class Settings extends Model
             [['primaryColor'], ColorValidator::class, 'pattern' => '/^#[0-9a-f]{6}$/'],
             [['bookingsPerHour', 'paymentIntentsPerHour'], 'integer', 'min' => 0],
             [['honeypotFieldName'], 'string', 'max' => 50],
-            [['enableHoneypot'], 'boolean'],
+            [['enableHoneypot', 'linkCustomersToUsers'], 'boolean'],
         ];
     }
 }

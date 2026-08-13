@@ -107,11 +107,9 @@ class Emails extends Component
     private function _sendSystemEmail(string $key, string $toEmail, array $variables): bool
     {
         try {
-            $message = Craft::$app->getSystemMessages()->getMessage($key);
-
-            $subject = Craft::$app->getView()->renderString($message->subject, $variables);
-            $body = Craft::$app->getView()->renderString($message->body, $variables);
-
+            // composeFromKey renders the message's subject and body itself, at send time,
+            // through the site's HTML email template — so anything rendered here would only
+            // be thrown away.
             $email = Craft::$app->getMailer()
                 ->composeFromKey($key, $variables)
                 ->setTo($toEmail);

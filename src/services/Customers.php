@@ -4,7 +4,9 @@ namespace justinholtweb\stub\services;
 
 use Craft;
 use craft\db\Query;
+use craft\elements\User;
 use justinholtweb\stub\models\Customer;
+use justinholtweb\stub\Plugin;
 use justinholtweb\stub\records\CustomerRecord;
 use yii\base\Component;
 
@@ -36,10 +38,49 @@ class Customers extends Component
         );
     }
 
+    /**
+     * The Craft user behind a customer, if there is one.
+     *
+     * A Stub customer is its own record and only optionally linked to a user, so this falls
+     * back to matching on email: someone who booked as a guest using the address their
+     * account uses is still that person. The fallback is read-only — it works out who they
+     * are without writing a link, which stays the site's call (`linkCustomersToUsers`).
+     */
+    public function resolveUser(Customer $customer): ?User
+    {
+        if ($customer->userId) {
+            $user = Craft::$app->getUsers()->getUserById($customer->userId);
+
+            if ($user !== null) {
+                return $user;
+            }
+        }
+
+        return $customer->email
+            ? Craft::$app->getUsers()->getUserByUsernameOrEmail($customer->email)
+            : null;
+    }
+
+    /**
+     * The customer record for a Craft user, by link or by email.
+     */
+    public function getCustomerForUser(User $user): ?Customer
+    {
+        $row = $this->_createQuery()->where(['userId' => $user->id])->one();
+
+        if ($row) {
+            return $this->_createCustomerFromRow($row);
+        }
+
+        return $user->email ? $this->getCustomerByEmail($user->email) : null;
+    }
+
     public function findOrCreate(string $email, string $firstName, string $lastName, ?string $phone = null): Customer
     {
         $existing = $this->getCustomerByEmail($email);
         if ($existing) {
+            $changed = false;
+
             // Update name if changed
             if ($existing->firstName !== $firstName || $existing->lastName !== $lastName) {
                 $existing->firstName = $firstName;
@@ -47,8 +88,19 @@ class Customers extends Component
                 if ($phone) {
                     $existing->phone = $phone;
                 }
+                $changed = true;
+            }
+
+            // Someone who registered an account after their first booking should stop being
+            // two separate people the next time they book.
+            if (!$existing->userId && $this->_attachUser($existing)) {
+                $changed = true;
+            }
+
+            if ($changed) {
                 $this->saveCustomer($existing);
             }
+
             return $existing;
         }
 
@@ -59,14 +111,32 @@ class Customers extends Component
             'phone' => $phone,
         ]);
 
-        // Link to existing Craft user if possible
-        $user = Craft::$app->getUsers()->getUserByUsernameOrEmail($email);
-        if ($user) {
-            $customer->userId = $user->id;
-        }
+        $this->_attachUser($customer);
 
         $this->saveCustomer($customer);
         return $customer;
+    }
+
+    /**
+     * Link a customer to the Craft user with the same email address.
+     *
+     * @return bool whether a link was made
+     */
+    private function _attachUser(Customer $customer): bool
+    {
+        if (!Plugin::getInstance()->getSettings()->linkCustomersToUsers || !$customer->email) {
+            return false;
+        }
+
+        $user = Craft::$app->getUsers()->getUserByUsernameOrEmail($customer->email);
+
+        if ($user === null) {
+            return false;
+        }
+
+        $customer->userId = $user->id;
+
+        return true;
     }
 
     public function saveCustomer(Customer $customer): bool

@@ -1,5 +1,46 @@
 # Changelog
 
+## 5.6.0 - 2026-08-13
+
+### Added
+- Support for 25 common currencies instead of 5 — CHF, NZD, JPY, SEK, NOK, DKK, PLN, CZK,
+  HUF, ZAR, SGD, HKD, INR, BRL, MXN, ILS, AED, TRY, KRW and THB join USD, EUR, GBP, CAD
+  and AUD. The list lives in one place (`Currencies::commonCurrencies()`) rather than being
+  duplicated across two templates and a symbol map.
+- Currencies configured in **Craft Commerce** are offered automatically when Commerce is
+  installed, on top of the built-in list. Commerce is not a dependency and nothing about a
+  site without it changes.
+- `Currencies` service, on `Plugin::getInstance()->currencies`.
+- `craft.stub.formatPrice(price, currency)` and `craft.stub.currencies()` for templates.
+- `Customers::resolveUser()` — the Craft user behind a customer, by link or by matching
+  email. Read-only: it works out who someone is without writing a link.
+- `Customers::getCustomerForUser()` — the same question from the other side.
+- A **Link Customers to Users** setting, on by default. Stub already attached new customers
+  to a matching Craft user; this makes it switchable (a shared household or office address
+  shouldn't have to imply one person) and extends it to a customer who *books again* after
+  registering an account — previously they stayed two separate people forever.
+- `Plugin::emailDefinitions()` — Stub's three system messages, the settings attribute that
+  switches each one on, and the variables its body may use, all in one place. It's what
+  registers the messages with Craft, and it lets a host bundle list every bundled plugin's
+  notifications on one screen instead of one per plugin. No change to the messages
+  themselves, their keys, or their default copy.
+
+### Fixed
+- **Payments in zero-decimal currencies were charged 100× the price.** `createPaymentIntent()`
+  multiplied every price by 100 to get Stripe's minor unit, but JPY, KRW, VND, CLP, XOF and
+  eleven others have no minor unit — a ¥1,000 booking would have been billed ¥100,000.
+  Three-decimal currencies (BHD, JOD, KWD, OMR, TND) were wrong in the other direction and
+  are now rounded to the multiple of 10 Stripe requires. No currency reachable from the old
+  five-entry picker was affected, so no existing site can have been overcharged.
+- Prices are formatted with the currency's real symbol, decimal count and symbol placement
+  via ICU, replacing a five-entry symbol map that rendered anything unknown as `CHF 10.00`
+  and put the symbol before the amount even in locales that place it after (`10,00 €`).
+- Four templates formatted prices by hand with `|number_format(2)`, bypassing `formatPrice()`
+  and hardcoding two decimals. They now go through the same path as everything else.
+- `Emails` rendered each system message's subject and body and then threw both away —
+  `composeFromKey()` does its own rendering at send time. Harmless, but it meant reading the
+  code told you the wrong thing about where the copy came from.
+
 ## 5.5.1 - 2026-07-25
 
 ### Fixed
