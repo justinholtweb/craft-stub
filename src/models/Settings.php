@@ -4,6 +4,7 @@ namespace justinholtweb\stub\models;
 
 use craft\base\Model;
 use craft\validators\ColorValidator;
+use DateTimeZone;
 
 class Settings extends Model
 {
@@ -65,6 +66,10 @@ class Settings extends Model
             // looser than a list membership check, since Commerce can supply codes the
             // built-in picker list doesn't carry.
             [['defaultCurrency'], 'match', 'pattern' => '/^[A-Z]{3}$/'],
+            // The picker only offers real identifiers, but an older version of the settings
+            // screen listed locales, so a site can still be carrying something like `en-US`
+            // here — reject it rather than let it reach a provider as a timezone.
+            [['defaultTimezone'], 'in', 'range' => DateTimeZone::listIdentifiers()],
             [['minimumNotice', 'maxAdvanceBooking', 'slotInterval'], 'integer', 'min' => 1],
             [['adminEmail'], 'email', 'skipOnEmpty' => true],
             // Craft's color input posts the hex without a leading `#`, so normalize

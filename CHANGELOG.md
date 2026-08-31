@@ -1,5 +1,48 @@
 # Changelog
 
+## 5.7.0 - 2026-08-31
+
+### Added
+- **Frontend service filtering.** `craft.stub.services()` now takes an optional filter, so a
+  template can show one author's services rather than every service on the site:
+  `craft.stub.services({ user: currentUser })`. Filter by service `id`/`handle`, by
+  `provider` (ID, handle or model), or by `user` — the Craft user a provider is linked to —
+  and add `includeDisabled` to see disabled ones. Every key accepts one value or a list.
+- `craft.stub.bookingForm()` accepts the same filter. It has always taken an `options`
+  argument and always ignored it; it no longer does. A form scoped to one service skips the
+  "select a service" step, and one scoped to a single provider skips that step too and opens
+  on the calendar — pass `pinProvider: false` to keep it. The progress bar and Back buttons
+  follow, so a two-step form shows two dots and no dead Back button.
+- `craft.stub.service(idOrHandle)` and `craft.stub.provider(idOrHandleOrUser)` for pages
+  built around one service or one provider. `provider()` accepts a `User` element directly.
+- `Services::getServices()`, `Providers::getProviderByHandle()`,
+  `Providers::getProviderByUserId()` and `Providers::getProviderIdsFor()` in PHP.
+- An empty state on the booking form's service step. A filtered form can legitimately have
+  nothing to offer, and an empty box under a progress bar read as a bug.
+
+### Fixed
+- The bookings index returned HTTP 500 whenever the status column was shown. Craft 5 expects
+  `statuses()` to return `craft\enums\Color` cases rather than colour strings.
+- The **Default Timezone** setting listed languages. The dropdown was built from Craft's
+  locale list, so it offered "English (United States)" and could store a locale id as a
+  timezone, which then became a new provider's timezone and broke on use. It is now Craft's
+  standard timezone picker, and a settings save rejects anything that isn't a real timezone
+  identifier — so a site carrying a bad value from the old field is told about it.
+
+### Notes
+- Filtering is a **display** concern. The booking endpoints are anonymous and take a service
+  ID from the request, so a filtered list does not stop a crafted POST from booking a
+  service that was filtered out. It narrows what a visitor sees, not what they may do.
+- An unknown filter key throws instead of being ignored, and a filter that resolves to
+  nothing — `{ user: currentUser }` on a logged-out request — matches nothing rather than
+  everything. Both failure modes would otherwise show a visitor services meant for someone
+  else.
+- Services are not elements and have no field layout, so there is no custom-field filtering.
+  Provider and user are the two ownership axes Stub models.
+- No schema change, no migration. `craft.stub.services()`, `craft.stub.providers()` and
+  `craft.stub.bookingForm()` with no arguments behave exactly as before, including on a site
+  with one service.
+
 ## 5.6.0 - 2026-08-13
 
 ### Added

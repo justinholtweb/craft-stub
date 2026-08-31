@@ -63,6 +63,9 @@ Embed in any Twig template:
 {{ craft.stub.bookingForm() }}
 ```
 
+Steps 1 and 2 drop out when a filter has already decided the service or the provider — see
+[Filtering Services](#filtering-services).
+
 The customer's browser timezone is auto-detected via `Intl.DateTimeFormat`. All times display in the customer's local timezone on the frontend and the provider's timezone in the CP.
 
 ### Stripe Payments
@@ -204,12 +207,65 @@ PaymentIntents.
 {# Get all services #}
 {% set services = craft.stub.services() %}
 
+{# …or only some of them — see Filtering Services #}
+{% set services = craft.stub.services({ user: currentUser }) %}
+
+{# One service, by handle or ID #}
+{% set service = craft.stub.service('consultation') %}
+
 {# Get providers (optionally filtered by service) #}
 {% set providers = craft.stub.providers(serviceId) %}
+
+{# One provider, by ID, handle, or the Craft user they're linked to #}
+{% set provider = craft.stub.provider(currentUser) %}
 
 {# Access settings #}
 {% set settings = craft.stub.settings() %}
 ```
+
+## Filtering Services
+
+`craft.stub.services()` and `craft.stub.bookingForm()` both take an optional filter, so a
+template can show one author's services, a named handful, or a single service.
+
+```twig
+{# Every service a provider offers — by handle, ID, or Provider model #}
+{% set services = craft.stub.services({ provider: 'jane' }) %}
+
+{# …or by the Craft user that provider is linked to #}
+{% set services = craft.stub.services({ user: currentUser }) %}
+
+{# Named services, in the order the control panel sorts them #}
+{% set services = craft.stub.services({ handles: ['consultation', 'follow-up'] }) %}
+
+{# A booking form scoped the same way #}
+{{ craft.stub.bookingForm({ user: currentUser }) }}
+{{ craft.stub.bookingForm({ handle: 'consultation' }) }}
+```
+
+| Key | Takes |
+|-----|-------|
+| `id` / `ids` | Service IDs |
+| `handle` / `handles` | Service handles |
+| `provider` / `providers` | A provider ID, handle, or Provider model |
+| `user` / `users` | A Craft `User` element or its ID — matched against the provider's linked user |
+| `includeDisabled` | `true` to include disabled services and providers |
+
+Every key accepts one value or a list, and they combine (all conditions must hold). Two
+behaviours are deliberate and worth knowing:
+
+- **An unknown key throws** rather than being ignored. A typo'd `{ providor: … }` that
+  quietly returned every service would be the worst possible failure mode.
+- **A filter that resolves to nothing matches nothing.** `{ user: currentUser }` on a
+  logged-out request returns `[]`, not the full list.
+
+When a filter leaves exactly one service, `bookingForm()` pins it and drops the "select a
+service" step; when a provider filter matches exactly one provider, that step goes too, and
+the form opens on the calendar. Pass `pinProvider: false` to keep the provider step.
+
+> **This is a display filter, not access control.** The booking endpoints are anonymous and
+> take a service ID from the request, so narrowing what a visitor is shown does not stop a
+> crafted POST from booking a service that was filtered out.
 
 ## Stripe Webhook Setup
 

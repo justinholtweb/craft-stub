@@ -5,6 +5,7 @@ namespace justinholtweb\stub\elements;
 use Craft;
 use craft\base\Element;
 use craft\elements\actions\Delete;
+use craft\enums\Color;
 use craft\helpers\UrlHelper;
 use DateTime;
 use justinholtweb\stub\elements\db\BookingQuery;
@@ -67,11 +68,11 @@ class Booking extends Element
     public static function statuses(): array
     {
         return [
-            'pending' => ['label' => Craft::t('stub', 'Pending'), 'color' => 'orange'],
-            'confirmed' => ['label' => Craft::t('stub', 'Confirmed'), 'color' => 'green'],
-            'completed' => ['label' => Craft::t('stub', 'Completed'), 'color' => 'blue'],
-            'cancelled' => ['label' => Craft::t('stub', 'Cancelled'), 'color' => 'red'],
-            'noShow' => ['label' => Craft::t('stub', 'No Show'), 'color' => 'grey'],
+            'pending' => ['label' => Craft::t('stub', 'Pending'), 'color' => Color::Orange],
+            'confirmed' => ['label' => Craft::t('stub', 'Confirmed'), 'color' => Color::Green],
+            'completed' => ['label' => Craft::t('stub', 'Completed'), 'color' => Color::Blue],
+            'cancelled' => ['label' => Craft::t('stub', 'Cancelled'), 'color' => Color::Red],
+            'noShow' => ['label' => Craft::t('stub', 'No Show'), 'color' => Color::Gray],
         ];
     }
 

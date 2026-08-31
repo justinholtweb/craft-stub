@@ -21,14 +21,13 @@
     errors: settings.getErrors('defaultCurrency'),
 }) }}
 
-{{ forms.selectField({
+{{ forms.timeZoneField({
     label: 'Default Timezone'|t('stub'),
+    instructions: 'Used for new providers. Individual providers can override it.'|t('stub'),
     id: 'defaultTimezone',
     name: 'defaultTimezone',
     value: settings.defaultTimezone,
-    options: craft.app.i18n.allLocales|map(l => { label: l.displayName, value: l.id })|merge(
-        craft.app.timeZone ? [{ label: craft.app.timeZone, value: craft.app.timeZone }] : []
-    ),
+    required: true,
     errors: settings.getErrors('defaultTimezone'),
 }) }}
 

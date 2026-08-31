@@ -67,7 +67,8 @@ src/
 │   └── TimeHelper.php              # UTC conversion, timezone math, overlap detection
 ├── migrations/
 │   └── Install.php                 # Creates all 9 tables, drops on uninstall
-├── models/                         # 8 data models with validation rules
+├── models/                         # 9 data models with validation rules
+│   └── ServiceCriteria.php         # Pure normalizer for frontend service filters
 ├── records/                        # 9 ActiveRecord classes (one per table)
 ├── services/
 │   ├── Availability.php            # Time slot generation engine
@@ -77,7 +78,7 @@ src/
 │   ├── Emails.php                  # Email dispatch via Craft system messages
 │   ├── Payments.php                # Stripe PaymentIntent, webhook handling
 │   ├── Providers.php               # Provider CRUD + schedule/break/blocked-date mgmt
-│   └── Services.php                # Service CRUD with soft delete and reorder
+│   └── Services.php                # Service CRUD with soft delete, reorder and filtering
 ├── templates/                      # Twig templates (CP + frontend)
 ├── translations/en/stub.php        # English translation strings
 └── variables/StubVariable.php      # craft.stub.* Twig API
@@ -133,6 +134,24 @@ Transitions happen in `Bookings::updateStatus()` which fires events and triggers
 - AJAX responses use `$this->asJson()`
 - Frontend controllers use `protected array|int|bool $allowAnonymous = [...]`
 - Webhook controllers set `public $enableCsrfValidation = false`
+
+### Frontend Service Filtering
+- `craft.stub.services()` and `craft.stub.bookingForm()` take a filter hash. It is normalized
+  by `ServiceCriteria::fromArray()` before any query runs — keep that class **pure** (no DB,
+  no booted Craft), which is what makes its rules unit-testable.
+- Two rules exist to stop a filter failing open, and both are load-bearing: an **unknown key
+  throws** rather than being ignored, and a filter that was **asked for but resolved to
+  nothing matches nothing** (`matchesNothing`), rather than falling back to everything. The
+  failure mode both prevent is showing a visitor another author's services.
+- Provider handles and Craft user IDs need a query to become provider IDs, so `ServiceCriteria`
+  carries them unresolved and `Providers::getProviderIdsFor()` does the lookup.
+- Filtering is **presentation, not authorization.** `AvailabilityController` and
+  `BookingFormController` are anonymous and take a service ID from the request. Never describe
+  a filter as restricting what someone can book, and don't build an access-control feature on
+  top of it without server-side checks in those controllers.
+- The booking form's six steps are indexed by DOM order, so a skipped step still renders — it
+  is just never navigated to and gets no progress dot. If you add or reorder steps, keep
+  `isStepSkipped()`, `previousStep()` and the template's `skippedSteps`/`entryStep` in sync.
 
 ### Currency Handling
 - The currency list has ONE source: `Currencies::commonCurrencies()`. Never hardcode a
@@ -206,6 +225,7 @@ When making changes, verify:
 6. Create a versioned migration in `src/migrations/` for existing installs
 
 ### Modifying the booking form
+- A form may open on a step other than the first — see Frontend Service Filtering
 - Steps are in `src/templates/frontend/_steps/`
 - JS logic is in `src/assetbundles/booking/booking-form.js`
 - CSS is in `src/assetbundles/booking/booking-form.css`
