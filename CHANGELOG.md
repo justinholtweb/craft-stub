@@ -1,5 +1,52 @@
 # Changelog
 
+## 5.8.0 - 2026-09-17
+
+### Added
+- **Reminder emails.** A reminder goes out to the customer a configurable number of hours
+  before their appointment — 24 by default — with the same message, worded for the people
+  running it, going to the provider and the admin address. Both are new system messages
+  (`stub_booking_reminder`, `stub_booking_reminder_internal`), so their copy is editable
+  and translatable in **Utilities → System Messages** like the other three.
+- `stub/reminders/send`, the console command that sends them. Craft has no scheduler, so a
+  site puts this on a cron — hourly is plenty for a 24-hour lead time. `--dry-run` lists
+  what would go out; `--limit` caps a run.
+- A **Send Reminder Now** button on a booking's detail page. The way to check the copy
+  before trusting it to cron, and the fallback for a site that has no cron at all.
+- **Manual bookings.** **Bookings → New Booking** enters a booking in the control panel:
+  a phone call, a walk-in, a regular whose slot never changes. The time picker is populated
+  by the same availability engine the front-end form uses, so the default is a genuinely
+  free slot; **Override availability** turns every check off and takes any time at all.
+  Status and payment status are set by hand, and sending the customer their confirmation is
+  a switch on the form.
+- `Bookings::createManualBooking()` in PHP, and `Reminders` — a new service on
+  `Plugin::getInstance()->reminders`.
+
+### Notes
+- **Schema change.** `stub_bookings` gains a `reminderSentAt` column and a composite index;
+  schema version is now 1.1.0, with a migration for existing installs. Null means "not yet
+  reminded", which is the correct state for every booking already in the table.
+- Both reminder switches default to **off**. Nothing sends reminders on its own, so
+  defaulting them on would promise an email that never arrives — and would mail every
+  customer with a booking inside the lead time on an upgraded site's first run.
+- Only **confirmed** bookings are reminded. A pending booking hasn't been paid for, and
+  telling someone not to forget an appointment they don't have yet is worse than silence.
+- The sweep never reaches backwards. A cron that has been down for three days catches up on
+  what is still ahead and says nothing about appointments people have already been to.
+- The sweep claims each booking with an atomic `UPDATE ... WHERE reminderSentAt IS NULL`
+  before composing its email, so two overlapping runs can't send a duplicate. The trade is
+  deliberate: a booking whose mail the mailer then refuses is logged and not retried, on the
+  grounds that a duplicate reminder is worse than a missing one.
+- Verified on a live Craft 5.10 install: migration, settings screen, manual booking with and
+  without the availability override, the sweep, and both reminder emails.
+- A manual booking fires the same save events as a front-end one, so an integration
+  listening for new bookings sees these too. It does **not** send the admin notification —
+  whoever filled the form in is the admin.
+- Override availability is a genuine override: it skips the slot check, the provider's
+  schedule, breaks and blocked dates, the capacity and buffer rules, and the check that the
+  provider is even assigned to the service. It can create a double-booking, which is the
+  point. Creating a booking at all requires `stub:manageBookings`.
+
 ## 5.7.0 - 2026-08-31
 
 ### Added

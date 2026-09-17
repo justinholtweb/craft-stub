@@ -41,10 +41,12 @@ src/
 │   ├── booking/                    # Frontend booking form (JS + CSS)
 │   ├── calendar/                   # FullCalendar v6 integration (CP)
 │   └── cp/                         # CP-wide styles and scripts
+├── console/controllers/
+│   └── RemindersController.php     # `stub/reminders/send` — the cron entry point
 ├── controllers/
 │   ├── AvailabilityController.php  # AJAX: providers, dates, slots (anonymous)
 │   ├── BookingFormController.php   # Frontend booking submission (anonymous)
-│   ├── BookingsController.php      # CP: booking list/edit/status
+│   ├── BookingsController.php      # CP: booking list/edit/status/manual entry
 │   ├── CalendarController.php      # CP: calendar view + JSON event feed
 │   ├── CustomersController.php     # CP: customer list/detail
 │   ├── DashboardController.php     # CP: stats overview
@@ -66,7 +68,8 @@ src/
 │   ├── BookingHelper.php           # Reference number generation, price formatting (delegates to Currencies)
 │   └── TimeHelper.php              # UTC conversion, timezone math, overlap detection
 ├── migrations/
-│   └── Install.php                 # Creates all 9 tables, drops on uninstall
+│   ├── Install.php                 # Creates all 9 tables, drops on uninstall
+│   └── m*_*.php                    # Versioned migrations for existing installs
 ├── models/                         # 9 data models with validation rules
 │   └── ServiceCriteria.php         # Pure normalizer for frontend service filters
 ├── records/                        # 9 ActiveRecord classes (one per table)
@@ -78,6 +81,7 @@ src/
 │   ├── Emails.php                  # Email dispatch via Craft system messages
 │   ├── Payments.php                # Stripe PaymentIntent, webhook handling
 │   ├── Providers.php               # Provider CRUD + schedule/break/blocked-date mgmt
+│   ├── Reminders.php               # Due-reminder sweep, driven by the console command
 │   └── Services.php                # Service CRUD with soft delete, reorder and filtering
 ├── templates/                      # Twig templates (CP + frontend)
 ├── translations/en/stub.php        # English translation strings
@@ -94,6 +98,24 @@ src/
 5. If paid: `PaymentController::actionCreateIntent()` → Stripe Payment Element → `stripe.confirmPayment()`
 6. Stripe webhook → `WebhookController::actionHandle()` → `Payments::handleWebhookEvent()` → confirms booking + sends emails
 7. If free: auto-confirms immediately in step 4
+
+### Manual Booking Flow (CP)
+1. **Bookings → New Booking** → `BookingsController::actionNew()`
+2. Service/provider/date chosen → the form's JS calls the same
+   `stub/availability/get-slots` endpoint the front-end form uses
+3. Submit → `BookingsController::actionCreate()` re-validates the slot server-side
+   (the picker was populated seconds ago; a customer may have taken it since)
+4. `Customers::findOrCreate()` → `Bookings::createManualBooking()`, which fires the same
+   save events as a front-end booking
+5. **Override availability** skips step 3 entirely, along with the provider↔service check
+
+### Reminder Sweep (`stub/reminders/send`)
+1. Cron runs the console command; it exits early if both reminder settings are off
+2. `Reminders::getDueBookings()` — confirmed, not yet reminded, starting inside
+   `[now, now + leadTime]`
+3. Each booking is **claimed** with `UPDATE ... WHERE reminderSentAt IS NULL` before its
+   email is composed, so overlapping runs can't duplicate
+4. `Emails::sendReminder()` — one copy to the customer, one to the provider and admin
 
 ### Availability Algorithm (`Availability::getAvailableSlots`)
 1. Load service (duration, buffers, capacity) and provider (timezone)
@@ -153,6 +175,36 @@ Transitions happen in `Bookings::updateStatus()` which fires events and triggers
   is just never navigated to and gets no progress dot. If you add or reorder steps, keep
   `isStepSkipped()`, `previousStep()` and the template's `skippedSteps`/`entryStep` in sync.
 
+### Reminders
+- Nothing schedules itself. `stub/reminders/send` on a cron is the only thing that sends
+  reminders, which is why both settings default to **off** — switching them on without the
+  cron promises an email that never arrives.
+- The due window is `[now, now + leadTime]` and deliberately **never reaches backwards**: a
+  sweep that hasn't run for days must not mail people about appointments they've been to.
+  `Reminders::dueWindow()` is pure and takes `$now`, which is what makes that testable.
+- A booking is **claimed** before its email is composed, not after it's sent. The trade is
+  deliberate — a duplicate reminder is worse than a missing one, so a send that then fails
+  is logged and not retried.
+- `reminderSentAt` is written with a direct `UPDATE`, not `saveElement()`. It's bookkeeping;
+  routing it through the element would fire save events, touch `dateUpdated` and re-index.
+- `startDateTime` is compared with raw UTC strings here, **not** the element query's date
+  param — `Db::parseDateParam()` reads params as system-local. Same reasoning as
+  `Bookings::getBookingStats()` and its `paidAt` bounds.
+
+### Manual Bookings
+- `createManualBooking()` differs from `createBooking()` in exactly one way: who decides the
+  two statuses. Everything else, including both save events, is shared via `_newBooking()`
+  and `_saveNew()` — keep it that way, so integrations see CP bookings too.
+- Availability is re-checked **server-side** on submit. The slot picker is populated by an
+  AJAX call that may be seconds stale, so trusting the posted value would let the CP create
+  the conflicts the front end refuses.
+- **Override availability** is a real override, not a looser check: no slot check, no
+  schedule, breaks or blocked dates, no capacity or buffers, and no provider↔service check.
+  It exists to double-book on purpose. Don't quietly add validation back into that branch.
+- `Providers::getServiceIdsForProvider()` returns whatever the driver hands back, and MySQL
+  hands back **strings**. Anything comparing those IDs strictly — PHP or the form's JS —
+  has to cast first.
+
 ### Currency Handling
 - The currency list has ONE source: `Currencies::commonCurrencies()`. Never hardcode a
   currency list in a template again — pass `currencyOptions` from the controller instead.
@@ -199,6 +251,10 @@ When making changes, verify:
 5. Booking form works end-to-end for free services
 6. Stripe test mode works with card `4242 4242 4242 4242`
 7. Emails send on confirmation, new booking, and cancellation
+7b. `stub/reminders/send --dry-run` lists the right bookings; a real run sends once and
+    stamps `reminderSentAt`; a second run immediately after sends nothing
+7c. A manual booking saves from **Bookings → New Booking**, respects availability, and
+    creates any time at all with **Override availability** on
 8. Calendar displays bookings with provider filter
 9. Cross-timezone booking displays correctly for both customer and provider
 10. CP permissions restrict access appropriately

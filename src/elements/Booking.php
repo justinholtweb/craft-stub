@@ -35,6 +35,12 @@ class Booking extends Element
     public ?string $cancelledAt = null;
     public ?string $cancellationReason = null;
 
+    /**
+     * When the reminder for this booking went out, as a naive UTC string. Null means it
+     * hasn't — which is what stops the sweep sending a second copy on its next run.
+     */
+    public ?string $reminderSentAt = null;
+
     // Cached relations
     private ?object $_service = null;
     private ?object $_provider = null;
@@ -239,6 +245,13 @@ class Booking extends Element
             : null;
     }
 
+    public function getLocalReminderSentAt(): ?DateTime
+    {
+        return $this->reminderSentAt !== null
+            ? TimeHelper::convertFromUtc($this->reminderSentAt, $this->timezone)
+            : null;
+    }
+
     protected static function defineActions(string $source = null): array
     {
         return [
@@ -275,6 +288,7 @@ class Booking extends Element
         $record->paidAt = $this->paidAt;
         $record->cancelledAt = $this->cancelledAt;
         $record->cancellationReason = $this->cancellationReason;
+        $record->reminderSentAt = $this->reminderSentAt;
 
         $record->save(false);
 

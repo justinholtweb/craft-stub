@@ -39,6 +39,23 @@ Bookings are native Craft elements. This means:
 - Payment status tracking (Unpaid, Paid, Refunded)
 - Reference numbers (e.g. `STB-20260215-A1B2`)
 
+### Manual Bookings
+Bookings can be entered in the control panel as well as through the front-end form — a phone
+call, a walk-in, a regular whose slot never changes. **Bookings → New Booking** asks for the
+service, provider, date and time, and the customer's details.
+
+The time picker is populated by the same availability engine the front-end form uses, so the
+default is a genuinely free slot. **Override availability** replaces it with a plain time
+field and turns every check off, which is how you double-book a provider, book outside their
+hours, book a service they aren't assigned to, or record something that already happened.
+
+The booking's status and payment status are set by hand — no payment is taken here, so a
+booking you've already been paid for is marked paid yourself. Sending the customer their
+confirmation email is a switch on the form, and the admin notification is deliberately never
+sent: whoever filled the form in is the admin.
+
+Creating a booking this way requires the `stub:manageBookings` permission.
+
 ### Availability Engine
 The slot generation algorithm respects all constraints:
 - Provider's weekly schedule and timezone
@@ -77,15 +94,42 @@ The customer's browser timezone is auto-detected via `Intl.DateTimeFormat`. All 
 - All Stripe keys support `$ENV_VAR` syntax for environment variable parsing
 
 ### Email Notifications
-Three system messages registered in **Utilities → System Messages** (editable by admins):
+Five system messages registered in **Utilities → System Messages** (editable by admins):
 
 | Key | Trigger | Recipient |
 |-----|---------|-----------|
 | `stub_booking_confirmation` | Booking confirmed | Customer |
 | `stub_admin_notification` | New booking created | Admin email |
 | `stub_booking_cancellation` | Booking cancelled | Customer + Admin |
+| `stub_booking_reminder` | Lead time before the appointment | Customer |
+| `stub_booking_reminder_internal` | Lead time before the appointment | Provider + Admin |
 
-Template variables: `referenceNumber`, `customerName`, `serviceName`, `providerName`, `dateFormatted`, `timeFormatted`, `priceFormatted`, plus full model objects (`booking`, `service`, `provider`, `customer`).
+Template variables: `referenceNumber`, `customerName`, `customerEmail`, `serviceName`, `providerName`, `dateFormatted`, `timeFormatted`, `priceFormatted`, `timezone`, plus full model objects (`booking`, `service`, `provider`, `customer`).
+
+### Reminder Emails
+A reminder goes out a configurable number of hours before the appointment — 24 by default.
+Only **confirmed** bookings are reminded, each exactly once, and never after the appointment
+has started.
+
+Craft has no scheduler, so reminders need a cron entry. Nothing is sent without one, which is
+why both reminder switches are **off by default**:
+
+```cron
+0 * * * * /path/to/craft stub/reminders/send
+```
+
+Hourly is plenty for a 24-hour lead time. The sweep is safe to run at any interval and safe
+to run twice at once — it claims each booking with an atomic update before composing its
+email, so an overlapping run can't send a second copy.
+
+```bash
+craft stub/reminders/send            # send everything due
+craft stub/reminders/send --dry-run  # list what would go out
+craft stub/reminders/send --limit=50 # cap one run
+```
+
+A single booking's reminder can also be sent on demand from its detail page in the control
+panel, which is the way to check the copy — and the fallback for a site with no cron.
 
 ### Calendar View
 FullCalendar v6 integration in the CP with:
@@ -173,6 +217,12 @@ All settings are in **Settings → Stub** or via `config/stub.php`:
 - `sendCustomerConfirmation` — Send confirmation email to customer (default: true)
 - `sendAdminNotification` — Send alert to admin on new booking (default: true)
 - `sendCancellationEmail` — Send cancellation emails (default: true)
+- `sendCustomerReminder` — Send the customer a reminder before their appointment (default: false)
+- `sendInternalReminder` — Send the same reminder to the provider and the admin address (default: false)
+- `reminderLeadTime` — Hours before the appointment that reminders go out (default: 24, max: 336)
+
+Both reminder switches are off by default because reminders need `stub/reminders/send` on a
+schedule; turning them on without one promises an email that never arrives.
 
 ### Appearance
 - `primaryColor` — Hex color for booking form UI (default: #2563eb)
