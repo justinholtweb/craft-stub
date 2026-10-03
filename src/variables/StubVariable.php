@@ -121,7 +121,7 @@ class StubVariable
     /**
      * Providers, optionally limited to those offering one service.
      */
-    public function providers(int $serviceId = null): array
+    public function providers(?int $serviceId = null): array
     {
         if ($serviceId) {
             return Plugin::getInstance()->providers->getProvidersByServiceId($serviceId);

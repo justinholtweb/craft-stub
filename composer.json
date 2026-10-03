@@ -2,7 +2,7 @@
     "name": "justinholtweb/craft-stub",
     "description": "Booking & appointments plugin for Craft CMS",
     "type": "craft-plugin",
-    "version": "5.8.0",
+    "version": "5.8.1",
     "license": "proprietary",
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -15,7 +15,8 @@
         "craftcms/ecs": "dev-main",
         "craftcms/phpstan": "dev-main",
         "craftcms/rector": "dev-main",
-        "pestphp/pest": "^3.5"
+        "pestphp/pest": "^3.5",
+        "phpstan/phpstan": "^1.12 || ^2.2"
     },
     "autoload": {
         "psr-4": {

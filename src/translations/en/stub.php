@@ -36,4 +36,6 @@ return [
     'Override availability' => 'Override availability',
     'Create Booking' => 'Create Booking',
     'Booking created.' => 'Booking created.',
+    'Stripe webhooks are refused until this is set, so payments won’t be confirmed. Copy the signing secret from the webhook endpoint in your Stripe dashboard.' => 'Stripe webhooks are refused until this is set, so payments won’t be confirmed. Copy the signing secret from the webhook endpoint in your Stripe dashboard.',
+    'That time is no longer available. Please choose another.' => 'That time is no longer available. Please choose another.',
 ];

@@ -154,6 +154,7 @@
     name: 'stripeWebhookSecret',
     value: settings.stripeWebhookSecret,
     suggestEnvVars: true,
+    warning: settings.paymentEnabled and not parseEnv(settings.stripeWebhookSecret) ? 'Stripe webhooks are refused until this is set, so payments won’t be confirmed. Copy the signing secret from the webhook endpoint in your Stripe dashboard.'|t('stub'),
 }) }}
 
 <hr>

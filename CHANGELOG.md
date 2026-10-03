@@ -1,5 +1,22 @@
 # Changelog
 
+## 5.8.1 - 2026-10-03
+
+### Security
+- **Stripe webhooks are refused without a signing secret.** With the secret blank, Stripe's
+  library still checked signatures — against an empty key, which anyone can produce — so a forged
+  `payment_intent.succeeded` could mark a booking paid. The settings screen warns while payments
+  are on and the secret is missing.
+- **The public booking form checks the slot.** It took any time and provider it was posted: the
+  past, a closed day, a full slot, a provider who doesn't offer the service. A booking now has to
+  be one of the slots the form would offer, with an enabled provider who offers the service.
+- **An anonymous booking can't rename an existing customer.** Using a customer's email filled in
+  their booking and replaced their name and phone. It now only fills in what's missing; the
+  customer, signed in, still updates their own details.
+
+### Added
+- `Availability::isBookable()`.
+
 ## 5.8.0 - 2026-09-17
 
 ### Added

@@ -64,6 +64,14 @@ The slot generation algorithm respects all constraints:
 - Existing bookings and service capacity
 - Minimum notice period and max advance booking window
 
+The public booking endpoint checks the same thing when a booking is submitted: the provider must
+be enabled and offer the service, and the start must be one of the slots the form would offer.
+A booking posted for any other time — or one taken while the customer was filling in the form —
+is refused with "That time is no longer available."
+
+An anonymous booking that uses an existing customer's email fills in details they're missing but
+never changes their name or phone; only the customer, signed in, updates their own details.
+
 ### Frontend Booking Form
 A vanilla JS step wizard (no React/Vue dependency) with 6 steps:
 
@@ -210,7 +218,7 @@ All settings are in **Settings → Stub** or via `config/stub.php`:
 - `paymentEnabled` — Enable payment processing (default: false)
 - `stripePublishableKey` — Supports `$STRIPE_PUBLISHABLE_KEY` syntax
 - `stripeSecretKey` — Supports `$STRIPE_SECRET_KEY` syntax
-- `stripeWebhookSecret` — Supports `$STRIPE_WEBHOOK_SECRET` syntax
+- `stripeWebhookSecret` — Supports `$STRIPE_WEBHOOK_SECRET` syntax. Required for webhooks: they're refused without it
 
 ### Notifications
 - `adminEmail` — Email for admin booking alerts
@@ -328,6 +336,11 @@ https://your-site.com/actions/stub/webhook/handle
 Listen for these events:
 - `payment_intent.succeeded`
 - `payment_intent.payment_failed`
+
+Then copy the endpoint's **signing secret** into **Stripe Webhook Secret**. Webhooks are refused
+until it's set — without it there is nothing to check a signature against, and a forged
+`payment_intent.succeeded` could mark a booking paid. The settings screen warns while payments
+are on and the secret is missing.
 
 ## Database Tables
 
