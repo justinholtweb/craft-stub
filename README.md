@@ -36,7 +36,7 @@ Bookings are native Craft elements. This means:
 - Status filters: Pending, Confirmed, Completed, Cancelled, No Show
 - Trash/restore support
 - Status transitions with cancellation reason tracking
-- Payment status tracking (Unpaid, Paid, Refunded)
+- Payment status tracking (Unpaid, Partially Paid, Paid, Refunded), with the amount paid and the balance due
 - Reference numbers (e.g. `STB-20260215-A1B2`)
 
 ### Manual Bookings
@@ -50,7 +50,8 @@ field and turns every check off, which is how you double-book a provider, book o
 hours, book a service they aren't assigned to, or record something that already happened.
 
 The booking's status and payment status are set by hand — no payment is taken here, so a
-booking you've already been paid for is marked paid yourself. Sending the customer their
+booking you've already been paid for is marked paid yourself (which records the price in the
+payments ledger, so it counts as revenue). Sending the customer their
 confirmation email is a switch on the form, and the admin notification is deliberately never
 sent: whoever filled the form in is the admin.
 
@@ -79,8 +80,8 @@ A vanilla JS step wizard (no React/Vue dependency) with 6 steps:
 2. **Select Provider** — AJAX-loaded providers for the chosen service
 3. **Pick Date & Time** — Custom calendar grid + time slot list
 4. **Customer Info** — Name, email, phone, notes with client-side validation
-5. **Payment** — Stripe Payment Element (if service has a price)
-6. **Confirmation** — Reference number and booking summary
+5. **Payment** — Stripe Payment Element, for the whole price or the deposit (skipped for free and pay-in-person services)
+6. **Confirmation** — Reference number and booking summary, including what's been paid and what's still due
 
 Embed in any Twig template:
 
@@ -93,12 +94,44 @@ Steps 1 and 2 drop out when a filter has already decided the service or the prov
 
 The customer's browser timezone is auto-detected via `Intl.DateTimeFormat`. All times display in the customer's local timezone on the frontend and the provider's timezone in the CP.
 
+### Payment Modes
+Each service with a price is paid one of three ways, set on the service:
+
+| Mode | At booking | Booking status | Afterwards |
+|------|-----------|----------------|------------|
+| **Full payment at booking** | The whole price, through Stripe | Pending until Stripe confirms the payment | Paid |
+| **Deposit at booking** | A deposit — a percentage of the price or a fixed sum — through Stripe | Pending until the deposit is paid, then confirmed | Partially paid; the balance is due at the appointment |
+| **Pay in person** | Nothing | Confirmed straight away | Unpaid until staff mark it paid |
+
+A booking keeps the mode, and the deposit, it was made under — changing the service later
+doesn't change what an existing booking owes. A percentage deposit is a percentage of what the
+customer is actually paying, after any discount a plugin applied when the booking was saved.
+
+**Mark as Paid.** The booking screen shows the price, the deposit, what's been paid and the
+balance due. Anyone with the `stub:recordPayments` permission can record money received outside
+Stripe there — cash, a card machine at the desk — with an optional note. The amount defaults to
+the whole balance; a smaller amount leaves the booking partially paid. More than the balance is
+refused.
+
+**The payments ledger.** Every payment — Stripe's, and the ones staff record — is a row in
+`stub_payments` with the moment the money arrived. The dashboard's monthly revenue is the sum of
+that ledger, so a deposit counts in the month it was paid and its balance in the month that was:
+cash received, not bookings sold. The dashboard also shows the balance still owed on confirmed
+bookings.
+
+Emails and the booking form's confirmation say where the money stands: what's been paid and
+what's due at the appointment (see the `paymentSummary` email variable).
+
+Free services never take a payment, whatever their mode. With **Enable Payments** off, a
+full-payment or deposit service books as pending and unpaid, as it always has.
+
 ### Stripe Payments
 - Direct `stripe/stripe-php` integration (no Commerce required)
 - Stripe Payment Element with SCA/3DS support
 - Webhook handler with signature verification (`payment_intent.succeeded`, `payment_intent.payment_failed`)
 - CSRF disabled on the webhook endpoint
-- Free services auto-confirm without payment flow
+- Free services auto-confirm without payment flow; pay-in-person services confirm without one too
+- A webhook delivered twice is only counted once
 - All Stripe keys support `$ENV_VAR` syntax for environment variable parsing
 
 ### Email Notifications
@@ -112,7 +145,12 @@ Five system messages registered in **Utilities → System Messages** (editable b
 | `stub_booking_reminder` | Lead time before the appointment | Customer |
 | `stub_booking_reminder_internal` | Lead time before the appointment | Provider + Admin |
 
-Template variables: `referenceNumber`, `customerName`, `customerEmail`, `serviceName`, `providerName`, `dateFormatted`, `timeFormatted`, `priceFormatted`, `timezone`, plus full model objects (`booking`, `service`, `provider`, `customer`).
+Template variables: `referenceNumber`, `customerName`, `customerEmail`, `serviceName`, `providerName`, `dateFormatted`, `timeFormatted`, `priceFormatted`, `amountPaidFormatted`, `balanceDueFormatted`, `paymentSummary`, `timezone`, plus full model objects (`booking`, `service`, `provider`, `customer`).
+
+`paymentSummary` is one ready-made sentence — "Paid in full: $80.00.", "Paid: $30.00. Balance due
+at the appointment: $90.00.", "Payment of $60.00 is due at the appointment." The default
+confirmation, new-booking and reminder messages include it; a message you've already customised
+in **System Messages** keeps your wording, so add it there if you want it.
 
 ### Reminder Emails
 A reminder goes out a configurable number of hours before the appointment — 24 by default.
@@ -156,8 +194,9 @@ At-a-glance stats: today's bookings, this week's count, pending confirmations, m
 - Find-or-create pattern for returning customers
 
 ### Permissions
-Six granular permissions:
+Seven granular permissions:
 - `stub:viewBookings`, `stub:manageBookings`, `stub:deleteBookings`
+- `stub:recordPayments` — mark bookings as paid (record money received outside Stripe)
 - `stub:manageServices`, `stub:manageProviders`, `stub:manageCustomers`
 
 ## Currencies
@@ -356,7 +395,7 @@ The plugin creates 9 tables (all prefixed `stub_`):
 | `stub_provider_services` | Junction table: which providers offer which services |
 | `stub_customers` | Customer contact info with optional Craft user link |
 | `stub_bookings` | Booking element content table (FK to elements) |
-| `stub_payments` | Stripe payment records linked to bookings |
+| `stub_payments` | The payments ledger: Stripe payments and payments staff recorded, with when each arrived |
 
 ## License
 

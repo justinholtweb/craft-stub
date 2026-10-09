@@ -60,12 +60,14 @@ src/
 │   └── db/BookingQuery.php         # Element query with booking-specific filters
 ├── enums/
 │   ├── BookingStatus.php           # pending|confirmed|completed|cancelled|noShow
-│   └── PaymentStatus.php           # unpaid|paid|refunded
+│   ├── PaymentMode.php             # full|deposit|inPerson (per service, snapshotted per booking)
+│   └── PaymentStatus.php           # unpaid|partiallyPaid|paid|refunded
 ├── events/
 │   ├── BookingEvent.php            # Fired on booking save/status change
 │   └── PaymentEvent.php            # Fired on payment completion
 ├── helpers/
 │   ├── BookingHelper.php           # Reference number generation, price formatting (delegates to Currencies)
+│   ├── PaymentHelper.php           # Pure deposit/balance/status arithmetic (unit-tested)
 │   └── TimeHelper.php              # UTC conversion, timezone math, overlap detection
 ├── migrations/
 │   ├── Install.php                 # Creates all 9 tables, drops on uninstall
@@ -95,9 +97,11 @@ src/
 2. Customer selects provider → `AvailabilityController::actionGetDates()` + `actionGetSlots()`
 3. Customer fills info → client-side validation in `booking-form.js`
 4. Submit → `BookingFormController::actionSubmit()` → creates Booking element + Customer record
-5. If paid: `PaymentController::actionCreateIntent()` → Stripe Payment Element → `stripe.confirmPayment()`
-6. Stripe webhook → `WebhookController::actionHandle()` → `Payments::handleWebhookEvent()` → confirms booking + sends emails
-7. If free: auto-confirms immediately in step 4
+5. If something is due online (`Booking::getAmountDueOnline()` — the price, or the deposit):
+   `PaymentController::actionCreateIntent()` → Stripe Payment Element → `stripe.confirmPayment()`
+6. Stripe webhook → `WebhookController::actionHandle()` → `Payments::handleWebhookEvent()` →
+   `Bookings::applyPayment()` (adds to `amountPaid`) → confirms a pending booking + sends emails
+7. If free or pay-in-person: confirmed immediately in step 4, and the confirmation email goes then
 
 ### Manual Booking Flow (CP)
 1. **Bookings → New Booking** → `BookingsController::actionNew()`
@@ -205,6 +209,27 @@ Transitions happen in `Bookings::updateStatus()` which fires events and triggers
   hands back **strings**. Anything comparing those IDs strictly — PHP or the form's JS —
   has to cast first.
 
+### Payment Modes and the Ledger
+- A service's `paymentMode` is `full`, `deposit` or `inPerson`. The booking copies it (and the
+  deposit) when it's made — **a snapshot**, so editing a service never changes what an existing
+  booking owes. Don't read the service's mode to decide anything about an existing booking.
+- The deposit is computed in `_saveNew()` **after** `EVENT_BEFORE_SAVE_BOOKING`, because a handler
+  (Showtime's member perks) may lower the price there; a percentage deposit must follow it.
+- `stub_payments` is the **ledger**: every succeeded row is money received, with `paidAt` (naive
+  UTC). Stripe rows are written pending by `createPaymentIntent()` and settled by the webhook;
+  staff rows (`method = manual`) by `Payments::recordManualPayment()`. Revenue
+  (`Payments::getRevenueBetween()`, the dashboard's `monthlyRevenue`) sums the ledger by `paidAt` —
+  cash received. Never go back to summing `stub_bookings.price` by `paidAt`: that counts a
+  deposit booking's whole price when its balance arrives and its deposit never.
+- `Bookings::applyPayment()` only updates the booking (`amountPaid`, the derived payment status,
+  `paidAt` once fully paid); writing the ledger row is the caller's job. Keep the two together —
+  `recordManualPayment()` does both in one transaction.
+- The webhook is **idempotent**: a ledger row already `succeeded` is skipped, because a payment
+  now *adds* to `amountPaid` and Stripe can deliver an event twice.
+- Money comparisons go through `PaymentHelper` (rounded to Stripe's minor unit), never raw float
+  equality — 33.33 + 33.33 + 33.34 is not 100.0.
+- Marking paid needs `stub:recordPayments` (flat, not nested under manageBookings).
+
 ### Currency Handling
 - The currency list has ONE source: `Currencies::commonCurrencies()`. Never hardcode a
   currency list in a template again — pass `currencyOptions` from the controller instead.
@@ -249,7 +274,10 @@ When making changes, verify:
 3. Providers with schedules, breaks, blocked dates, service assignments
 4. Availability returns correct slots (respects all constraints)
 5. Booking form works end-to-end for free services
-6. Stripe test mode works with card `4242 4242 4242 4242`
+6. Stripe test mode works with card `4242 4242 4242 4242` — for a full-payment and a deposit service
+6b. A pay-in-person booking confirms with nothing to pay; **Mark as Paid** records it and the
+    dashboard's monthly revenue rises by exactly that amount
+6c. `php tests/integration/checks.php` in the plugin-testing harness is green
 7. Emails send on confirmation, new booking, and cancellation
 7b. `stub/reminders/send --dry-run` lists the right bookings; a real run sends once and
     stamps `reminderSentAt`; a second run immediately after sends nothing

@@ -1,5 +1,46 @@
 # Changelog
 
+## 5.9.0 - 2026-10-08
+
+### Added
+- **Deposits and pay-in-person.** Each service is now paid one of three ways: the whole price
+  at booking (as before), a **deposit** at booking — a percentage of the price or a fixed sum,
+  with the balance due at the appointment — or **in person**, where the booking is confirmed
+  straight away and stays unpaid until someone marks it paid. A booking keeps the mode and the
+  deposit it was made under.
+- **Mark as Paid.** The booking screen shows the price, the deposit, what's been paid and the
+  balance due, and records money received outside Stripe (cash, a card machine) with an optional
+  note. The amount defaults to the balance; less leaves the booking partially paid. It needs the
+  new **Record payments** permission (`stub:recordPayments`).
+- A **Partially Paid** payment status, and **Paid**, **Balance Due** and **Payment Mode** columns
+  for the bookings index.
+- **A payments ledger.** Every payment — Stripe's and the ones staff record — is kept in
+  `stub_payments` with when the money arrived, and listed on the booking.
+- `amountPaidFormatted`, `balanceDueFormatted` and `paymentSummary` email variables. The default
+  confirmation, new-booking and reminder messages now say what's been paid and what's due; a
+  message you've customised in **System Messages** keeps your wording.
+- The booking form shows a service's deposit or "Pay in person" on its card, says what the payment
+  step is about to charge, and its confirmation says what's been paid and what's due.
+- The dashboard shows the balance still owed on confirmed bookings.
+- `Payments::recordManualPayment()`, `Payments::getPaymentsForBooking()`,
+  `Payments::getRevenueBetween()`, `Bookings::applyPayment()`, `Booking::getBalanceDue()`,
+  `Booking::getAmountDueOnline()`, `Booking::getPaymentSummary()`. `Payments::EVENT_PAYMENT_COMPLETED`
+  also fires for payments staff record.
+
+### Changed
+- **Monthly revenue is cash received.** It was the price of every booking marked paid that
+  month; it's now the sum of the payments received that month, so a deposit counts in the month
+  it was paid and its balance in the month that was. The upgrade backfills the ledger from the
+  bookings already paid, so past months read the same.
+- A Stripe webhook delivered twice is only counted once.
+- `Bookings::markPaid()` is deprecated in favour of `Bookings::applyPayment()`, which counts the
+  amount actually received.
+
+### Fixed
+- A free booking that confirmed itself never sent the customer's confirmation email, though the
+  booking form said it had. It now goes out when the booking is made, as it does for
+  pay-in-person bookings.
+
 ## 5.8.1 - 2026-10-03
 
 ### Security
