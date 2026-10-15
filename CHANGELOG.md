@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.9.1 - 2026-10-15
+
+### Fixed
+- Republishes 5.9.0, whose tag pointed at the 5.8.1 commit, so Packagist never offered it. No code
+  changes since 5.9.0.
+
 ## 5.9.0 - 2026-10-08
 
 ### Added
